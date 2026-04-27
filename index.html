@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Signal Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
 
@@ -35,7 +36,6 @@
     min-height: 100vh;
   }
 
-  /* Scanline overlay */
   body::before {
     content: '';
     position: fixed;
@@ -57,506 +57,144 @@
     z-index: 10;
   }
 
-  .logo {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    color: var(--accent);
-    text-transform: uppercase;
-  }
-
+  .logo { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; }
   .logo span { color: var(--muted); font-weight: 400; }
 
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
+  .header-right { display: flex; align-items: center; gap: 20px; }
 
-  .live-dot {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-  }
+  .live-dot { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
 
-  .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: pulse 2s infinite;
-  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
+  .last-update { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 
-  .last-update {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-  }
-
-  .refresh-btn {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    border: 0.5px solid var(--border);
-    background: none;
-    padding: 4px 10px;
-    border-radius: 3px;
-    cursor: pointer;
-    letter-spacing: 0.06em;
-    transition: all 0.15s;
-  }
+  .refresh-btn { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 0.5px solid var(--border); background: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; letter-spacing: 0.06em; transition: all 0.15s; }
   .refresh-btn:hover { color: var(--text); border-color: var(--border-bright); }
 
-  main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 28px;
-    display: grid;
-    gap: 16px;
-  }
+  main { max-width: 1200px; margin: 0 auto; padding: 28px; display: grid; gap: 16px; }
 
-  /* Composite score */
-  .score-bar {
-    background: var(--bg2);
-    border: 0.5px solid var(--border);
-    border-radius: 4px;
-    padding: 24px 28px;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 28px;
-    align-items: center;
-  }
-
-  .score-number {
-    font-family: var(--mono);
-    font-size: 56px;
-    font-weight: 600;
-    line-height: 1;
-    transition: color 0.5s;
-  }
-
-  .score-center { }
-
-  .score-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .score-verdict {
-    font-size: 20px;
-    font-weight: 500;
-    margin-bottom: 4px;
-  }
-
-  .score-hint {
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .score-track {
-    height: 3px;
-    background: var(--dim);
-    border-radius: 2px;
-    margin-top: 12px;
-    position: relative;
-  }
-
-  .score-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 0.8s cubic-bezier(0.4,0,0.2,1), background 0.5s;
-  }
-
-  .score-right {
-    text-align: right;
-  }
-
-  .type-scores {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .type-score-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: var(--mono);
-    font-size: 11px;
-  }
-
+  /* Score bar */
+  .score-bar { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 4px; padding: 24px 28px; display: grid; grid-template-columns: auto 1fr auto; gap: 28px; align-items: center; }
+  .score-number { font-family: var(--mono); font-size: 56px; font-weight: 600; line-height: 1; transition: color 0.5s; }
+  .score-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .score-verdict { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .score-hint { font-size: 12px; color: var(--muted); }
+  .score-track { height: 3px; background: var(--dim); border-radius: 2px; margin-top: 12px; }
+  .score-fill { height: 100%; border-radius: 2px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1), background 0.5s; }
+  .type-scores { display: flex; flex-direction: column; gap: 8px; }
+  .type-score-row { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; }
   .type-score-label { color: var(--muted); width: 70px; text-align: right; }
   .type-score-val { width: 28px; text-align: right; font-weight: 500; }
   .mini-bar { flex: 1; height: 2px; background: var(--dim); border-radius: 1px; }
   .mini-fill { height: 100%; border-radius: 1px; transition: width 0.6s; }
 
-  /* Signal grid */
-  .signals-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
-  }
+  /* Recommendation */
+  .rec-panel { border-radius: 4px; padding: 28px 32px; display: grid; grid-template-columns: auto 1fr auto; gap: 32px; align-items: center; border: 1px solid transparent; transition: background 0.5s, border-color 0.5s; position: relative; overflow: hidden; }
+  .rec-panel.rec-buy { background: rgba(200,240,96,0.06); border-color: rgba(200,240,96,0.25); }
+  .rec-panel.rec-sell { background: rgba(240,96,96,0.06); border-color: rgba(240,96,96,0.25); }
+  .rec-panel.rec-hold { background: rgba(240,160,96,0.05); border-color: rgba(240,160,96,0.2); }
+  .rec-panel.rec-flat { background: var(--bg2); border-color: var(--border); }
+  .rec-action { font-family: var(--mono); font-size: 52px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; transition: color 0.5s; }
+  .rec-buy .rec-action { color: var(--accent); }
+  .rec-sell .rec-action { color: var(--danger); }
+  .rec-hold .rec-action { color: var(--warn); }
+  .rec-flat .rec-action { color: var(--muted); }
+  .rec-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .rec-title { font-size: 18px; font-weight: 500; margin-bottom: 6px; }
+  .rec-detail { font-size: 12px; color: var(--muted); line-height: 1.7; max-width: 520px; }
+  .rec-detail strong { color: var(--text); font-weight: 500; }
+  .rec-confidence { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 8px; }
+  .conf-pips { display: flex; gap: 4px; justify-content: flex-end; margin-bottom: 12px; }
+  .pip { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); transition: background 0.4s; }
+  .pip.on-buy { background: var(--accent); }
+  .pip.on-sell { background: var(--danger); }
+  .pip.on-hold { background: var(--warn); }
+  .rec-vote-row { display: flex; gap: 12px; font-family: var(--mono); font-size: 11px; justify-content: flex-end; }
+  .vote-item { color: var(--muted); }
+  .vote-item span { font-weight: 600; margin-right: 3px; }
+  .vote-buy span { color: var(--accent); }
+  .vote-sell span { color: var(--danger); }
+  .vote-hold span { color: var(--warn); }
 
-  .signal-card {
-    background: var(--bg2);
-    border: 0.5px solid var(--border);
-    border-radius: 4px;
-    padding: 18px 20px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
+  .disclaimer { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 0.06em; text-align: center; padding: 4px 0 0; }
 
-  .signal-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 2px; height: 100%;
-    transition: background 0.3s;
-  }
+  /* Chart */
+  .chart-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 4px; padding: 20px 24px; }
+  .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .chart-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+  .chart-legend { display: flex; gap: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 8px; height: 2px; border-radius: 1px; }
+  .chart-wrap { position: relative; height: 180px; }
+  .chart-tabs { display: flex; gap: 6px; }
+  .chart-tab { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 2px; border: 0.5px solid var(--border); background: none; color: var(--muted); cursor: pointer; letter-spacing: 0.04em; transition: all 0.15s; }
+  .chart-tab.active { color: var(--text); border-color: var(--border-bright); background: var(--bg3); }
 
+  /* Prices */
+  .price-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .price-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 4px; padding: 16px 18px; }
+  .price-ticker { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+  .price-val { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+  .price-change { font-family: var(--mono); font-size: 11px; font-weight: 500; margin-left: 6px; }
+  .price-change.pos { color: var(--accent); }
+  .price-change.neg { color: var(--danger); }
+  .price-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* Signals */
+  .signals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .signal-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 4px; padding: 18px 20px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+  .signal-card::before { content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 100%; transition: background 0.3s; }
   .signal-card.bullish::before { background: var(--accent); }
   .signal-card.bearish::before { background: var(--danger); }
   .signal-card.neutral::before { background: var(--muted); }
   .signal-card.loading::before { background: var(--dim); }
-
   .signal-card:hover { border-color: var(--border-bright); }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-  }
-
-  .card-source {
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 3px;
-  }
-
-  .card-name {
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .card-badge {
-    font-family: var(--mono);
-    font-size: 9px;
-    padding: 3px 8px;
-    border-radius: 2px;
-    letter-spacing: 0.06em;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .card-source { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 3px; }
+  .card-name { font-size: 13px; font-weight: 500; }
+  .card-badge { font-family: var(--mono); font-size: 9px; padding: 3px 8px; border-radius: 2px; letter-spacing: 0.06em; font-weight: 600; text-transform: uppercase; }
   .badge-bullish { background: rgba(200,240,96,0.12); color: var(--accent); }
   .badge-bearish { background: rgba(240,96,96,0.12); color: var(--danger); }
-  .badge-neutral  { background: rgba(102,102,96,0.15); color: var(--muted); }
-  .badge-loading  { background: var(--bg3); color: var(--dim); }
-
-  .card-value {
-    font-family: var(--mono);
-    font-size: 28px;
-    font-weight: 600;
-    line-height: 1;
-    margin-bottom: 4px;
-    transition: color 0.3s;
-  }
-
+  .badge-neutral { background: rgba(102,102,96,0.15); color: var(--muted); }
+  .badge-loading { background: var(--bg3); color: var(--dim); }
+  .card-value { font-family: var(--mono); font-size: 28px; font-weight: 600; line-height: 1; margin-bottom: 4px; transition: color 0.3s; }
   .card-value.bullish { color: var(--accent); }
   .card-value.bearish { color: var(--danger); }
   .card-value.neutral { color: var(--warn); }
   .card-value.loading { color: var(--dim); }
-
-  .card-sub {
-    font-size: 12px;
-    color: var(--muted);
-    margin-bottom: 12px;
-  }
-
-  .card-interpretation {
-    font-size: 11px;
-    color: var(--muted);
-    border-top: 0.5px solid var(--border);
-    padding-top: 10px;
-    line-height: 1.6;
-  }
-
+  .card-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .card-interpretation { font-size: 11px; color: var(--muted); border-top: 0.5px solid var(--border); padding-top: 10px; line-height: 1.6; }
   .card-interpretation strong { color: var(--text); font-weight: 500; }
 
-  /* Price row */
-  .price-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .price-card {
-    background: var(--bg2);
-    border: 0.5px solid var(--border);
-    border-radius: 4px;
-    padding: 18px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .price-ticker {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 4px;
-  }
-
-  .price-val {
-    font-family: var(--mono);
-    font-size: 22px;
-    font-weight: 600;
-  }
-
-  .price-change {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-    margin-left: 8px;
-  }
-
-  .price-change.pos { color: var(--accent); }
-  .price-change.neg { color: var(--danger); }
-
-  /* Links section */
-  .links-row {
-    background: var(--bg2);
-    border: 0.5px solid var(--border);
-    border-radius: 4px;
-    padding: 16px 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .links-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-right: 4px;
-  }
-
-  .ext-link {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    border: 0.5px solid var(--border);
-    padding: 4px 10px;
-    border-radius: 3px;
-    text-decoration: none;
-    letter-spacing: 0.04em;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .ext-link:hover { color: var(--accent); border-color: var(--accent); }
-
-  .ext-link::after { content: '↗'; font-size: 9px; }
+  /* New: mini sparkline in card */
+  .card-spark { margin-top: 8px; height: 32px; }
 
   /* Funding table */
-  .funding-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: var(--mono);
-    font-size: 12px;
-    margin-top: 10px;
-  }
-
-  .funding-table th {
-    text-align: left;
-    color: var(--muted);
-    font-weight: 400;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0 0 8px;
-    border-bottom: 0.5px solid var(--border);
-  }
-
-  .funding-table td {
-    padding: 8px 0;
-    border-bottom: 0.5px solid var(--border);
-  }
-
+  .funding-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; margin-top: 10px; }
+  .funding-table th { text-align: left; color: var(--muted); font-weight: 400; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 0 8px; border-bottom: 0.5px solid var(--border); }
+  .funding-table td { padding: 8px 0; border-bottom: 0.5px solid var(--border); }
   .funding-table tr:last-child td { border-bottom: none; }
 
-  .f-pos { color: var(--danger); }
-  .f-neg { color: var(--accent); }
-  .f-neutral { color: var(--muted); }
+  .section-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; padding-bottom: 8px; }
 
-  /* Section labels */
-  .section-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    color: var(--muted);
-    text-transform: uppercase;
-    padding-bottom: 8px;
+  .links-row { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 4px; padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .links-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-right: 4px; }
+  .ext-link { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 0.5px solid var(--border); padding: 4px 10px; border-radius: 3px; text-decoration: none; letter-spacing: 0.04em; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+  .ext-link:hover { color: var(--accent); border-color: var(--accent); }
+  .ext-link::after { content: '↗'; font-size: 9px; }
+
+  .spinner { display: inline-block; animation: spin 1s linear infinite; }
+
+  @media (max-width: 900px) {
+    .price-row { grid-template-columns: repeat(2, 1fr); }
   }
-
-  .spinner {
-    display: inline-block;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Recommendation panel */
-  .rec-panel {
-    border-radius: 4px;
-    padding: 28px 32px;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 32px;
-    align-items: center;
-    border: 1px solid transparent;
-    transition: background 0.5s, border-color 0.5s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .rec-panel::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0.04;
-    pointer-events: none;
-    transition: opacity 0.5s;
-  }
-
-  .rec-panel.rec-buy { background: rgba(200,240,96,0.06); border-color: rgba(200,240,96,0.25); }
-  .rec-panel.rec-buy::after { background: var(--accent); opacity: 0.08; }
-  .rec-panel.rec-sell { background: rgba(240,96,96,0.06); border-color: rgba(240,96,96,0.25); }
-  .rec-panel.rec-sell::after { background: var(--danger); opacity: 0.08; }
-  .rec-panel.rec-hold { background: rgba(240,160,96,0.05); border-color: rgba(240,160,96,0.2); }
-  .rec-panel.rec-flat { background: var(--bg2); border-color: var(--border); }
-
-  .rec-action {
-    font-family: var(--mono);
-    font-size: 52px;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    transition: color 0.5s;
-  }
-
-  .rec-buy .rec-action   { color: var(--accent); }
-  .rec-sell .rec-action  { color: var(--danger); }
-  .rec-hold .rec-action  { color: var(--warn); }
-  .rec-flat .rec-action  { color: var(--muted); }
-
-  .rec-center { }
-
-  .rec-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .rec-title {
-    font-size: 18px;
-    font-weight: 500;
-    margin-bottom: 6px;
-  }
-
-  .rec-detail {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.7;
-    max-width: 520px;
-  }
-
-  .rec-detail strong { color: var(--text); font-weight: 500; }
-
-  .rec-right { text-align: right; }
-
-  .rec-confidence {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    margin-bottom: 8px;
-  }
-
-  .conf-pips {
-    display: flex;
-    gap: 4px;
-    justify-content: flex-end;
-    margin-bottom: 12px;
-  }
-
-  .pip {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--dim);
-    transition: background 0.4s;
-  }
-
-  .pip.on-buy   { background: var(--accent); }
-  .pip.on-sell  { background: var(--danger); }
-  .pip.on-hold  { background: var(--warn); }
-
-  .rec-vote-row {
-    display: flex;
-    gap: 12px;
-    font-family: var(--mono);
-    font-size: 11px;
-    justify-content: flex-end;
-  }
-
-  .vote-item { color: var(--muted); }
-  .vote-item span { font-weight: 600; margin-right: 3px; }
-  .vote-buy  span { color: var(--accent); }
-  .vote-sell span { color: var(--danger); }
-  .vote-hold span { color: var(--warn); }
-
-  .disclaimer {
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--dim);
-    letter-spacing: 0.06em;
-    text-align: center;
-    padding: 4px 0 0;
-  }
-
-  /* Responsive */
   @media (max-width: 700px) {
     main { padding: 16px; }
     .score-bar { grid-template-columns: auto 1fr; }
-    .score-right { display: none; }
-    .price-row { grid-template-columns: 1fr; }
+    .score-bar .type-scores { display: none; }
+    .price-row { grid-template-columns: repeat(2, 1fr); }
     .rec-panel { grid-template-columns: 1fr; gap: 16px; }
     .rec-right { text-align: left; }
     .conf-pips { justify-content: flex-start; }
@@ -584,11 +222,9 @@
       <div class="score-label">Composite Signal Score</div>
       <div class="score-verdict" id="composite-verdict">Loading signals...</div>
       <div class="score-hint" id="composite-hint">Fetching live data from public APIs</div>
-      <div class="score-track">
-        <div class="score-fill" id="score-fill" style="width:0%"></div>
-      </div>
+      <div class="score-track"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
     </div>
-    <div class="score-right type-scores">
+    <div class="type-scores">
       <div class="type-score-row">
         <div class="type-score-label">Technical</div>
         <div class="type-score-val" id="ts-tech">—</div>
@@ -610,7 +246,7 @@
   <!-- Recommendation -->
   <div class="rec-panel rec-flat" id="rec-panel">
     <div class="rec-action" id="rec-action">—</div>
-    <div class="rec-center">
+    <div>
       <div class="rec-label">Signal Recommendation</div>
       <div class="rec-title" id="rec-title">Loading signals...</div>
       <div class="rec-detail" id="rec-detail">Fetching live data to generate recommendation.</div>
@@ -618,8 +254,7 @@
     <div class="rec-right">
       <div class="rec-confidence">CONFIDENCE</div>
       <div class="conf-pips" id="conf-pips">
-        <div class="pip"></div><div class="pip"></div><div class="pip"></div>
-        <div class="pip"></div><div class="pip"></div>
+        <div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div>
       </div>
       <div class="rec-vote-row">
         <div class="vote-item vote-buy"><span id="vote-buy">—</span>BUY</div>
@@ -630,39 +265,62 @@
   </div>
   <div class="disclaimer">NOT FINANCIAL ADVICE · FOR EDUCATIONAL PURPOSES ONLY · ALWAYS USE A STOP-LOSS · NEVER RISK MORE THAN YOU CAN AFFORD TO LOSE</div>
 
-  <!-- Prices -->
-  <div class="price-row">
-    <div class="price-card">
+  <!-- Composite Trend Chart -->
+  <div class="chart-card">
+    <div class="chart-header">
       <div>
-        <div class="price-ticker">BTC / USD</div>
-        <div>
-          <span class="price-val" id="btc-price">—</span>
-          <span class="price-change" id="btc-change"></span>
+        <div class="chart-title">Composite Signal Trend — 30 days</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Composite</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div>Fear &amp; Greed</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--warn)"></div>RSI</div>
         </div>
       </div>
     </div>
-    <div class="price-card">
-      <div>
-        <div class="price-ticker">ETH / USD</div>
-        <div>
-          <span class="price-val" id="eth-price">—</span>
-          <span class="price-change" id="eth-change"></span>
-        </div>
-      </div>
+    <div class="chart-wrap">
+      <canvas id="trend-chart"></canvas>
+    </div>
+    <div style="display:flex;gap:20px;margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--muted)">
+      <span>▬ <span style="color:rgba(200,240,96,0.3)">■</span> BUY zone (&gt;60)</span>
+      <span>▬ <span style="color:rgba(240,160,96,0.2)">■</span> HOLD zone (40–60)</span>
+      <span>▬ <span style="color:rgba(240,96,96,0.2)">■</span> SELL zone (&lt;40)</span>
+      <span id="chart-status" style="margin-left:auto">Loading historical data...</span>
     </div>
   </div>
 
-  <!-- Signal cards -->
+  <!-- Price row — 4 cards -->
+  <div class="price-row">
+    <div class="price-card">
+      <div class="price-ticker">BTC / USD</div>
+      <div><span class="price-val" id="btc-price">—</span><span class="price-change" id="btc-change"></span></div>
+      <div class="price-sub" id="btc-vol">Vol: —</div>
+    </div>
+    <div class="price-card">
+      <div class="price-ticker">ETH / USD</div>
+      <div><span class="price-val" id="eth-price">—</span><span class="price-change" id="eth-change"></span></div>
+      <div class="price-sub" id="eth-vol">Vol: —</div>
+    </div>
+    <div class="price-card">
+      <div class="price-ticker">BTC 7d trend</div>
+      <div><span class="price-val" id="btc-7d" style="font-size:15px">—</span></div>
+      <div class="price-sub" id="btc-ema-sub">EMA signal loading...</div>
+    </div>
+    <div class="price-card">
+      <div class="price-ticker">Market cap</div>
+      <div><span class="price-val" id="mc-val" style="font-size:15px">—</span><span class="price-change" id="mc-change"></span></div>
+      <div class="price-sub" id="mc-sub">Total crypto market</div>
+    </div>
+  </div>
+
+  <!-- Signal Cards -->
   <div class="section-label">Live Signals</div>
   <div class="signals-grid">
 
-    <!-- Fear & Greed -->
     <div class="signal-card loading" id="card-fg">
       <div class="card-header">
-        <div>
-          <div class="card-source">alternative.me · sentiment</div>
-          <div class="card-name">Fear &amp; Greed Index</div>
-        </div>
+        <div><div class="card-source">alternative.me · sentiment</div><div class="card-name">Fear &amp; Greed Index</div></div>
         <div class="card-badge badge-loading" id="badge-fg">LOADING</div>
       </div>
       <div class="card-value loading" id="val-fg"><span class="spinner">⟳</span></div>
@@ -670,55 +328,59 @@
       <div class="card-interpretation" id="interp-fg">Live data from alternative.me</div>
     </div>
 
-    <!-- BTC RSI (approximated from price) -->
     <div class="signal-card loading" id="card-rsi">
       <div class="card-header">
-        <div>
-          <div class="card-source">coingecko · technical</div>
-          <div class="card-name">BTC RSI (14, Daily)</div>
-        </div>
+        <div><div class="card-source">coingecko · technical</div><div class="card-name">BTC RSI (14, Daily)</div></div>
         <div class="card-badge badge-loading" id="badge-rsi">LOADING</div>
       </div>
       <div class="card-value loading" id="val-rsi"><span class="spinner">⟳</span></div>
-      <div class="card-sub" id="sub-rsi">Calculating from price history...</div>
+      <div class="card-sub" id="sub-rsi">Calculating...</div>
       <div class="card-interpretation" id="interp-rsi">Computed from CoinGecko OHLC data</div>
     </div>
 
-    <!-- BTC Dominance -->
+    <div class="signal-card loading" id="card-ema">
+      <div class="card-header">
+        <div><div class="card-source">coingecko · technical</div><div class="card-name">EMA 21 / 55 Signal</div></div>
+        <div class="card-badge badge-loading" id="badge-ema">LOADING</div>
+      </div>
+      <div class="card-value loading" id="val-ema"><span class="spinner">⟳</span></div>
+      <div class="card-sub" id="sub-ema">Computing moving averages...</div>
+      <div class="card-interpretation" id="interp-ema">Trend direction signal</div>
+    </div>
+
+    <div class="signal-card loading" id="card-vol">
+      <div class="card-header">
+        <div><div class="card-source">coingecko · technical</div><div class="card-name">Volume Momentum</div></div>
+        <div class="card-badge badge-loading" id="badge-vol">LOADING</div>
+      </div>
+      <div class="card-value loading" id="val-vol"><span class="spinner">⟳</span></div>
+      <div class="card-sub" id="sub-vol">Loading volume data...</div>
+      <div class="card-interpretation" id="interp-vol">7d vs 30d average volume</div>
+    </div>
+
     <div class="signal-card loading" id="card-dom">
       <div class="card-header">
-        <div>
-          <div class="card-source">coingecko · sentiment</div>
-          <div class="card-name">BTC Dominance</div>
-        </div>
+        <div><div class="card-source">coingecko · on-chain</div><div class="card-name">BTC Dominance</div></div>
         <div class="card-badge badge-loading" id="badge-dom">LOADING</div>
       </div>
       <div class="card-value loading" id="val-dom"><span class="spinner">⟳</span></div>
-      <div class="card-sub" id="sub-dom">Loading global market data...</div>
-      <div class="card-interpretation" id="interp-dom">From CoinGecko global market data</div>
+      <div class="card-sub" id="sub-dom">Loading...</div>
+      <div class="card-interpretation" id="interp-dom">Bitcoin share of total market</div>
     </div>
 
-    <!-- Market Cap Change -->
     <div class="signal-card loading" id="card-mc">
       <div class="card-header">
-        <div>
-          <div class="card-source">coingecko · on-chain</div>
-          <div class="card-name">Total Market Cap 24h</div>
-        </div>
+        <div><div class="card-source">coingecko · on-chain</div><div class="card-name">Total Market Cap 24h</div></div>
         <div class="card-badge badge-loading" id="badge-mc">LOADING</div>
       </div>
       <div class="card-value loading" id="val-mc"><span class="spinner">⟳</span></div>
-      <div class="card-sub" id="sub-mc">Loading global data...</div>
-      <div class="card-interpretation" id="interp-mc">From CoinGecko global market data</div>
+      <div class="card-sub" id="sub-mc">Loading...</div>
+      <div class="card-interpretation" id="interp-mc">Capital flowing in or out</div>
     </div>
 
-    <!-- ETH/BTC ratio -->
     <div class="signal-card loading" id="card-ratio">
       <div class="card-header">
-        <div>
-          <div class="card-source">coingecko · technical</div>
-          <div class="card-name">ETH/BTC Ratio</div>
-        </div>
+        <div><div class="card-source">coingecko · technical</div><div class="card-name">ETH/BTC Ratio</div></div>
         <div class="card-badge badge-loading" id="badge-ratio">LOADING</div>
       </div>
       <div class="card-value loading" id="val-ratio"><span class="spinner">⟳</span></div>
@@ -726,59 +388,32 @@
       <div class="card-interpretation" id="interp-ratio">Calculated from live prices</div>
     </div>
 
-    <!-- Funding placeholder (Coinglass blocks CORS) -->
     <div class="signal-card neutral" id="card-fund">
       <div class="card-header">
-        <div>
-          <div class="card-source">coinglass · on-chain</div>
-          <div class="card-name">BTC Funding Rate</div>
-        </div>
+        <div><div class="card-source">coinglass · on-chain</div><div class="card-name">BTC Funding Rate</div></div>
         <div class="card-badge badge-neutral">MANUAL</div>
       </div>
-      <div class="card-value neutral" style="font-size:16px;margin-top:4px">Check Coinglass</div>
-      <div class="card-sub">Coinglass blocks browser requests (CORS)</div>
-      <div class="card-interpretation"><strong>How to read it:</strong> &gt;0.1% = longs crowded (caution). &lt;0% = shorts paying longs (bullish bias). Check every 8h before perp trades. <a href="https://www.coinglass.com/FundingRate" target="_blank" style="color:var(--accent2);text-decoration:none">Open Coinglass ↗</a></div>
+      <div class="card-value neutral" style="font-size:14px;margin-top:4px;line-height:1.4">Check Coinglass</div>
+      <div class="card-sub">Browser API blocked (CORS)</div>
+      <div class="card-interpretation"><strong>Rule:</strong> &gt;0.1% = avoid new longs. &lt;0% = bullish bias. Check before every perp trade. <a href="https://www.coinglass.com/FundingRate" target="_blank" style="color:var(--accent2);text-decoration:none">Open ↗</a></div>
     </div>
 
   </div>
 
-  <!-- Funding rate table note -->
+  <!-- Perp Checklist -->
   <div class="signal-card neutral" style="padding:18px 20px">
     <div class="section-label" style="margin-bottom:12px">Perp Checklist — before every leveraged trade</div>
     <table class="funding-table">
       <thead>
-        <tr>
-          <th style="width:30%">Check</th>
-          <th style="width:35%">Where to look</th>
-          <th>What to look for</th>
-        </tr>
+        <tr><th style="width:30%">Check</th><th style="width:35%">Where</th><th>Signal to look for</th></tr>
       </thead>
       <tbody>
-        <tr>
-          <td style="color:var(--text)">Funding rate</td>
-          <td style="color:var(--muted)">Coinglass.com</td>
-          <td style="color:var(--muted)">&lt;0.05% to go long safely</td>
-        </tr>
-        <tr>
-          <td style="color:var(--text)">Open interest</td>
-          <td style="color:var(--muted)">Coinglass → OI</td>
-          <td style="color:var(--muted)">Rising OI + price = strong trend</td>
-        </tr>
-        <tr>
-          <td style="color:var(--text)">Fear &amp; Greed</td>
-          <td style="color:var(--muted)">Above (live)</td>
-          <td style="color:var(--muted)">&lt;30 buy zone, &gt;80 be cautious</td>
-        </tr>
-        <tr>
-          <td style="color:var(--text)">RSI (4H)</td>
-          <td style="color:var(--muted)">TradingView</td>
-          <td style="color:var(--muted)">&lt;40 oversold, &gt;70 overbought</td>
-        </tr>
-        <tr>
-          <td style="color:var(--text)">Stop-loss set?</td>
-          <td style="color:var(--muted)">Your exchange</td>
-          <td style="color:var(--muted)">Set BEFORE entering position</td>
-        </tr>
+        <tr><td style="color:var(--text)">Funding rate</td><td style="color:var(--muted)">Coinglass.com</td><td style="color:var(--muted)">&lt;0.05% to go long safely</td></tr>
+        <tr><td style="color:var(--text)">Open interest</td><td style="color:var(--muted)">Coinglass → OI</td><td style="color:var(--muted)">Rising OI + price = strong trend</td></tr>
+        <tr><td style="color:var(--text)">Composite score</td><td style="color:var(--muted)">Above (live)</td><td style="color:var(--muted)">&gt;60 to open longs, &lt;40 stay flat</td></tr>
+        <tr><td style="color:var(--text)">RSI (4H)</td><td style="color:var(--muted)">TradingView</td><td style="color:var(--muted)">&lt;40 oversold, &gt;70 overbought</td></tr>
+        <tr><td style="color:var(--text)">EMA trend</td><td style="color:var(--muted)">Above (live)</td><td style="color:var(--muted)">21 EMA above 55 EMA = uptrend</td></tr>
+        <tr><td style="color:var(--text)">Stop-loss set?</td><td style="color:var(--muted)">Your exchange</td><td style="color:var(--muted)">Set BEFORE entering — no exceptions</td></tr>
       </tbody>
     </table>
   </div>
@@ -799,15 +434,20 @@
 </main>
 
 <script>
-// ─── Helpers ───────────────────────────────────────────────────────────────
+// ─── State ──────────────────────────────────────────────────────────────────
+const scores = { tech: null, chain: null, sent: null };
+let trendChart = null;
+let historicalData = { labels: [], composite: [], fg: [], rsi: [] };
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+const el = id => document.getElementById(id);
 
 function setCard(id, { signal, value, sub, interp }) {
-  const card = document.getElementById('card-' + id);
-  const badge = document.getElementById('badge-' + id);
-  const val = document.getElementById('val-' + id);
-  const subEl = document.getElementById('sub-' + id);
-  const interpEl = document.getElementById('interp-' + id);
-
+  const card = el('card-' + id);
+  const badge = el('badge-' + id);
+  const val = el('val-' + id);
+  const subEl = el('sub-' + id);
+  const interpEl = el('interp-' + id);
   card.className = 'signal-card ' + signal;
   badge.className = 'card-badge badge-' + signal;
   badge.textContent = signal.toUpperCase();
@@ -817,69 +457,192 @@ function setCard(id, { signal, value, sub, interp }) {
   if (interp) interpEl.innerHTML = interp;
 }
 
-function fmtPrice(n) {
-  return '$' + Math.round(n).toLocaleString();
+function fmtPrice(n) { return '$' + Math.round(n).toLocaleString(); }
+function fmtPct(n, d = 1) { return (n >= 0 ? '+' : '') + n.toFixed(d) + '%'; }
+function fmtVol(n) {
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(0) + 'M';
+  return '$' + n.toLocaleString();
 }
 
-function fmtPct(n, decimals = 1) {
-  const s = n.toFixed(decimals);
-  return (n >= 0 ? '+' : '') + s + '%';
+// ─── EMA ────────────────────────────────────────────────────────────────────
+function calcEMA(data, period) {
+  const k = 2 / (period + 1);
+  let ema = data[0];
+  for (let i = 1; i < data.length; i++) ema = data[i] * k + ema * (1 - k);
+  return ema;
 }
 
-// ─── RSI Calculation ────────────────────────────────────────────────────────
-
+// ─── RSI ────────────────────────────────────────────────────────────────────
 function calcRSI(closes, period = 14) {
   if (closes.length < period + 1) return null;
   let gains = 0, losses = 0;
   for (let i = 1; i <= period; i++) {
-    const diff = closes[i] - closes[i - 1];
-    if (diff > 0) gains += diff; else losses -= diff;
+    const d = closes[i] - closes[i - 1];
+    if (d > 0) gains += d; else losses -= d;
   }
-  let avgGain = gains / period;
-  let avgLoss = losses / period;
+  let ag = gains / period, al = losses / period;
   for (let i = period + 1; i < closes.length; i++) {
-    const diff = closes[i] - closes[i - 1];
-    const g = diff > 0 ? diff : 0;
-    const l = diff < 0 ? -diff : 0;
-    avgGain = (avgGain * (period - 1) + g) / period;
-    avgLoss = (avgLoss * (period - 1) + l) / period;
+    const d = closes[i] - closes[i - 1];
+    ag = (ag * (period - 1) + Math.max(d, 0)) / period;
+    al = (al * (period - 1) + Math.max(-d, 0)) / period;
   }
-  if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return 100 - (100 / (1 + rs));
+  if (al === 0) return 100;
+  return 100 - (100 / (1 + ag / al));
 }
 
-// ─── Score Engine ──────────────────────────────────────────────────────────
+// RSI → score
+function rsiToScore(rsi) {
+  if (rsi < 30) return 82;
+  if (rsi < 40) return 68;
+  if (rsi < 50) return 56;
+  if (rsi < 60) return 50;
+  if (rsi < 70) return 42;
+  if (rsi < 78) return 32;
+  return 20;
+}
 
-const scores = { tech: null, chain: null, sent: null };
+// FG → score
+function fgToScore(fg) {
+  if (fg <= 20) return 85;
+  if (fg <= 35) return 70;
+  if (fg <= 50) return 55;
+  if (fg <= 65) return 45;
+  if (fg <= 80) return 35;
+  return 18;
+}
 
+// ─── Chart ──────────────────────────────────────────────────────────────────
+function initChart() {
+  const ctx = el('trend-chart').getContext('2d');
+
+  // Zone backgrounds as plugins
+  const zonesPlugin = {
+    id: 'zones',
+    beforeDraw(chart) {
+      const { ctx, chartArea: { top, bottom, left, right }, scales: { y } } = chart;
+      if (!y) return;
+      ctx.save();
+
+      // BUY zone > 60
+      const y60 = y.getPixelForValue(60);
+      ctx.fillStyle = 'rgba(200,240,96,0.07)';
+      ctx.fillRect(left, top, right - left, y60 - top);
+
+      // HOLD zone 40–60
+      const y40 = y.getPixelForValue(40);
+      ctx.fillStyle = 'rgba(240,160,96,0.05)';
+      ctx.fillRect(left, y60, right - left, y40 - y60);
+
+      // SELL zone < 40
+      ctx.fillStyle = 'rgba(240,96,96,0.07)';
+      ctx.fillRect(left, y40, right - left, bottom - y40);
+
+      ctx.restore();
+    }
+  };
+
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    plugins: [zonesPlugin],
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Composite',
+          data: [],
+          borderColor: '#c8f060',
+          backgroundColor: 'rgba(200,240,96,0.08)',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          tension: 0.3,
+          fill: false,
+        },
+        {
+          label: 'Fear & Greed',
+          data: [],
+          borderColor: '#60c8f0',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          pointRadius: 0,
+          tension: 0.3,
+          borderDash: [4, 3],
+          fill: false,
+        },
+        {
+          label: 'RSI Score',
+          data: [],
+          borderColor: '#f0a060',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          pointRadius: 0,
+          tension: 0.3,
+          borderDash: [2, 4],
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#181818',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#666660',
+          bodyColor: '#e8e8e4',
+          titleFont: { family: 'IBM Plex Mono', size: 10 },
+          bodyFont: { family: 'IBM Plex Mono', size: 11 },
+          callbacks: {
+            title: items => items[0].label,
+            label: item => ` ${item.dataset.label}: ${Math.round(item.raw)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#444441', font: { family: 'IBM Plex Mono', size: 9 }, maxTicksLimit: 8 },
+          border: { color: 'rgba(255,255,255,0.07)' }
+        },
+        y: {
+          min: 0, max: 100,
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#444441', font: { family: 'IBM Plex Mono', size: 9 }, stepSize: 20 },
+          border: { color: 'rgba(255,255,255,0.07)' }
+        }
+      }
+    }
+  });
+}
+
+function updateChart() {
+  if (!trendChart || !historicalData.labels.length) return;
+  trendChart.data.labels = historicalData.labels;
+  trendChart.data.datasets[0].data = historicalData.composite;
+  trendChart.data.datasets[1].data = historicalData.fg;
+  trendChart.data.datasets[2].data = historicalData.rsi;
+  trendChart.update('active');
+  el('chart-status').textContent = historicalData.labels.length + ' days of data';
+}
+
+// ─── Score & Recommendation Engine ──────────────────────────────────────────
 function updateComposite() {
   const vals = Object.values(scores).filter(v => v !== null);
   if (!vals.length) return;
 
   const composite = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-
-  const el = id => document.getElementById(id);
   el('composite-num').textContent = composite;
 
   let verdict, hint, color;
-  if (composite >= 70) {
-    verdict = 'Strong bullish signal';
-    hint = 'Multiple indicators aligned — proceed with discipline';
-    color = 'var(--accent)';
-  } else if (composite >= 55) {
-    verdict = 'Moderate signal';
-    hint = 'Partial confluence — size smaller, use tight stops';
-    color = 'var(--warn)';
-  } else if (composite >= 40) {
-    verdict = 'Mixed / neutral';
-    hint = 'No clear edge — consider staying flat';
-    color = 'var(--muted)';
-  } else {
-    verdict = 'Bearish signal';
-    hint = 'Signals favour downside — avoid new longs';
-    color = 'var(--danger)';
-  }
+  if (composite >= 70) { verdict = 'Strong bullish signal'; hint = 'Multiple indicators aligned — proceed with discipline'; color = 'var(--accent)'; }
+  else if (composite >= 55) { verdict = 'Moderate signal'; hint = 'Partial confluence — size smaller, use tight stops'; color = 'var(--warn)'; }
+  else if (composite >= 40) { verdict = 'Mixed / neutral'; hint = 'No clear edge — consider staying flat'; color = 'var(--muted)'; }
+  else { verdict = 'Bearish signal'; hint = 'Signals favour downside — avoid new longs'; color = 'var(--danger)'; }
 
   el('composite-num').style.color = color;
   el('composite-verdict').textContent = verdict;
@@ -889,232 +652,234 @@ function updateComposite() {
   fill.style.width = composite + '%';
   fill.style.background = composite >= 70 ? 'var(--accent)' : composite >= 55 ? 'var(--warn)' : composite >= 40 ? 'var(--muted)' : 'var(--danger)';
 
-  // Mini bars
-  const types = [['tech', 'ts-tech', 'mf-tech'], ['chain', 'ts-chain', 'mf-chain'], ['sent', 'ts-sent', 'mf-sent']];
+  const types = [['tech','ts-tech','mf-tech'],['chain','ts-chain','mf-chain'],['sent','ts-sent','mf-sent']];
   for (const [key, numId, barId] of types) {
-    if (scores[key] !== null) {
-      el(numId).textContent = scores[key];
-      el(barId).style.width = scores[key] + '%';
-    }
+    if (scores[key] !== null) { el(numId).textContent = scores[key]; el(barId).style.width = scores[key] + '%'; }
   }
 
-  // ── Recommendation Engine ──────────────────────────────────────────────
-  const activeScores = Object.values(scores).filter(v => v !== null);
-  if (!activeScores.length) return;
-
-  // Each signal votes: >58 = BUY, 42-58 = HOLD, <42 = SELL
+  // Votes
   const votes = { buy: 0, hold: 0, sell: 0 };
-  const totalSignals = activeScores.length;
-  for (const s of activeScores) {
+  for (const s of vals) {
     if (s > 58) votes.buy++;
     else if (s >= 42) votes.hold++;
     else votes.sell++;
   }
-
-  el('vote-buy').textContent  = votes.buy  + '/';
+  el('vote-buy').textContent  = votes.buy + '/';
   el('vote-hold').textContent = votes.hold + '/';
   el('vote-sell').textContent = votes.sell + '/';
 
-  // Determine recommendation
-  const panel = document.getElementById('rec-panel');
+  const crossCategory = [scores.tech, scores.chain, scores.sent].filter(v => v !== null).length;
   let recAction, recClass, recTitle, recDetail, confidence;
 
-  const typesActive = activeScores.length;
-  const crossCategory = [scores.tech, scores.chain, scores.sent].filter(v => v !== null).length;
-
   if (composite >= 72 && votes.buy >= 2 && crossCategory >= 2) {
-    recAction = 'BUY';
-    recClass = 'rec-buy';
+    recAction = 'BUY'; recClass = 'rec-buy';
     recTitle = 'Signals favour a long entry';
-    recDetail = `<strong>Spot:</strong> Consider deploying 20–30% of your spot allocation. DCA in — don't go all-in at once. <strong>Perps:</strong> If funding is below 0.05%, a 2–3x long with a tight stop is reasonable. Confirm on TradingView before entering.`;
-    confidence = votes.buy >= 3 ? 5 : votes.buy >= 2 ? 4 : 3;
+    recDetail = `<strong>Spot:</strong> Deploy 20–30% of allocation. DCA in — don't go all-in. <strong>Perps:</strong> If funding &lt;0.05%, a 2–3x long with a stop is reasonable. Confirm trend on TradingView first.`;
+    confidence = votes.buy >= 3 ? 5 : 4;
   } else if (composite >= 60 && votes.buy > votes.sell) {
-    recAction = 'BUY';
-    recClass = 'rec-buy';
+    recAction = 'BUY'; recClass = 'rec-buy';
     recTitle = 'Moderate buy signal — size conservatively';
-    recDetail = `<strong>Spot:</strong> Small position, 10–15% of allocation. Wait for a pullback to a key level if possible. <strong>Perps:</strong> Only if funding is neutral-to-negative. Keep leverage at 2x max and set your stop before clicking buy.`;
+    recDetail = `<strong>Spot:</strong> 10–15% of allocation. Wait for a pullback if possible. <strong>Perps:</strong> Only if funding is neutral-to-negative. 2x max, stop set before entry.`;
     confidence = 3;
-  } else if (composite >= 45 && composite < 60) {
-    recAction = 'HOLD';
-    recClass = 'rec-hold';
+  } else if (composite >= 45) {
+    recAction = 'HOLD'; recClass = 'rec-hold';
     recTitle = 'No clear edge — stay patient';
-    recDetail = `Signals are mixed. If you already have spot positions, <strong>hold them</strong> — no reason to sell. Don't open new perp positions when signals disagree. Wait for clearer confluence before deploying more capital.`;
+    recDetail = `Signals are mixed. Hold existing spot positions. Don't open new perp positions. Wait for composite score to move clearly above 60 or below 40.`;
     confidence = 2;
   } else if (composite >= 35 && votes.sell >= 2) {
-    recAction = 'SELL';
-    recClass = 'rec-sell';
+    recAction = 'SELL'; recClass = 'rec-sell';
     recTitle = 'Signals lean bearish — reduce exposure';
-    recDetail = `<strong>Spot:</strong> Consider trimming 20–30% of profitable positions. Don't panic-sell everything. <strong>Perps:</strong> Close or reduce any open longs. If you want to hedge, a very small 2x short on BTC perps with a tight stop is the tool — not a full reversal.`;
+    recDetail = `<strong>Spot:</strong> Trim 20–30% of profitable positions. <strong>Perps:</strong> Close or reduce longs. If hedging, a small 2x short on BTC with a tight stop — not a full reversal.`;
     confidence = votes.sell >= 3 ? 4 : 3;
   } else if (composite < 35) {
-    recAction = 'SELL';
-    recClass = 'rec-sell';
+    recAction = 'SELL'; recClass = 'rec-sell';
     recTitle = 'Strong bearish signal — protect capital';
-    recDetail = `Multiple signals pointing down. <strong>Spot:</strong> Reduce to your minimum comfort level. Move to stablecoins if signals deteriorate further. <strong>Perps:</strong> Close longs. No new positions until signals recover above 45.`;
+    recDetail = `Multiple signals pointing down. <strong>Spot:</strong> Reduce to minimum comfort. Consider stablecoins. <strong>Perps:</strong> Close all longs. No new positions until score recovers above 45.`;
     confidence = votes.sell >= 3 ? 5 : 4;
   } else {
-    recAction = 'HOLD';
-    recClass = 'rec-hold';
-    recTitle = 'Insufficient confluence — wait';
-    recDetail = `Not enough signals loaded yet, or signals are too mixed to act. Check back after refresh or add more signal sources. When in doubt, flat is a position.`;
+    recAction = 'HOLD'; recClass = 'rec-hold';
+    recTitle = 'Insufficient data — wait';
+    recDetail = `Not enough signals loaded. Refresh in a moment. When in doubt, flat is a position.`;
     confidence = 1;
   }
 
-  // Override: if only 1 category active, cap confidence and soften
   if (crossCategory < 2) {
     confidence = Math.min(confidence, 2);
-    recDetail += ` <strong>Note:</strong> Only one signal category is active — confidence is low until more data loads.`;
+    recDetail += ` <strong>Note:</strong> Only one signal category active — confidence low until all data loads.`;
   }
 
-  panel.className = 'rec-panel ' + recClass;
+  el('rec-panel').className = 'rec-panel ' + recClass;
   el('rec-action').textContent = recAction;
   el('rec-title').textContent  = recTitle;
   el('rec-detail').innerHTML   = recDetail;
 
-  // Confidence pips
   const pipClass = recAction === 'BUY' ? 'on-buy' : recAction === 'SELL' ? 'on-sell' : 'on-hold';
-  const pips = document.querySelectorAll('#conf-pips .pip');
-  pips.forEach((p, i) => {
+  document.querySelectorAll('#conf-pips .pip').forEach((p, i) => {
     p.className = 'pip' + (i < confidence ? ' ' + pipClass : '');
   });
+
+  // Push today's composite to chart history
+  const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  const last = historicalData.labels[historicalData.labels.length - 1];
+  if (last !== today) {
+    historicalData.labels.push(today);
+    historicalData.composite.push(composite);
+  } else {
+    historicalData.composite[historicalData.composite.length - 1] = composite;
+  }
+  updateChart();
 }
 
-// ─── Data Fetchers ─────────────────────────────────────────────────────────
+// ─── Data Fetchers ───────────────────────────────────────────────────────────
 
-async function loadPrices() {
+async function loadPricesAndTech() {
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
-    const data = await res.json();
+    // Current prices
+    const pRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true');
+    const pData = await pRes.json();
 
-    const btcP = data.bitcoin.usd;
-    const btcC = data.bitcoin.usd_24h_change;
-    const ethP = data.ethereum.usd;
-    const ethC = data.ethereum.usd_24h_change;
+    const btcP = pData.bitcoin.usd;
+    const btcC = pData.bitcoin.usd_24h_change;
+    const btcV = pData.bitcoin.usd_24h_vol;
+    const ethP = pData.ethereum.usd;
+    const ethC = pData.ethereum.usd_24h_change;
+    const ethV = pData.ethereum.usd_24h_vol;
 
-    document.getElementById('btc-price').textContent = fmtPrice(btcP);
-    const bc = document.getElementById('btc-change');
-    bc.textContent = fmtPct(btcC);
-    bc.className = 'price-change ' + (btcC >= 0 ? 'pos' : 'neg');
+    el('btc-price').textContent = fmtPrice(btcP);
+    const bc = el('btc-change'); bc.textContent = fmtPct(btcC); bc.className = 'price-change ' + (btcC >= 0 ? 'pos' : 'neg');
+    el('btc-vol').textContent = 'Vol: ' + fmtVol(btcV);
 
-    document.getElementById('eth-price').textContent = fmtPrice(ethP);
-    const ec = document.getElementById('eth-change');
-    ec.textContent = fmtPct(ethC);
-    ec.className = 'price-change ' + (ethC >= 0 ? 'pos' : 'neg');
+    el('eth-price').textContent = fmtPrice(ethP);
+    const ec = el('eth-change'); ec.textContent = fmtPct(ethC); ec.className = 'price-change ' + (ethC >= 0 ? 'pos' : 'neg');
+    el('eth-vol').textContent = 'Vol: ' + fmtVol(ethV);
 
     // ETH/BTC ratio
     const ratio = ethP / btcP;
-    const ratioStr = ratio.toFixed(5);
     let ratioSignal, ratioInterp;
-    if (ratio > 0.065) {
-      ratioSignal = 'bullish';
-      ratioInterp = '<strong>Risk-on:</strong> ETH outperforming BTC — altcoins may follow. Favourable for ETH longs.';
-    } else if (ratio > 0.055) {
-      ratioSignal = 'neutral';
-      ratioInterp = '<strong>Neutral:</strong> ETH/BTC in mid-range. No strong directional bias from this signal.';
-    } else {
-      ratioSignal = 'bearish';
-      ratioInterp = '<strong>Risk-off:</strong> BTC dominating. Capital rotating into BTC safety — avoid altcoin longs.';
+    if (ratio > 0.065) { ratioSignal = 'bullish'; ratioInterp = '<strong>Risk-on:</strong> ETH outperforming — altcoin season conditions building. Favour ETH longs.'; }
+    else if (ratio > 0.050) { ratioSignal = 'neutral'; ratioInterp = '<strong>Neutral:</strong> ETH/BTC mid-range. No strong directional bias from this signal alone.'; }
+    else { ratioSignal = 'bearish'; ratioInterp = '<strong>Risk-off:</strong> BTC dominating. Capital rotating to safety — avoid altcoin exposure.'; }
+    setCard('ratio', { signal: ratioSignal, value: ratio.toFixed(5), sub: 'ETH relative to BTC · live', interp: ratioInterp });
+
+    return { btcP, ethP, btcV, btcC };
+  } catch(e) { console.error('Price fetch failed', e); }
+}
+
+async function loadOHLC() {
+  try {
+    // 90 days for robust EMA + volume analysis
+    const res = await fetch('https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90');
+    const data = await res.json();
+
+    const closes = data.map(d => d[4]);
+    const volumes = data.map(d => d[2] - d[3]); // proxy: high-low range (CG OHLC has no volume in free tier)
+
+    // RSI
+    const rsi = calcRSI(closes, 14);
+    const rsiVal = rsi ? Math.round(rsi) : null;
+
+    if (rsiVal !== null) {
+      let rsiSignal, rsiInterp;
+      if (rsi < 30) { rsiSignal = 'bullish'; rsiInterp = '<strong>Oversold (&lt;30):</strong> Strong mean-reversion setup. Historically high-probability bounce zone. Look for confluence.'; scores.tech = 82; }
+      else if (rsi < 42) { rsiSignal = 'bullish'; rsiInterp = '<strong>Below midline:</strong> Momentum slightly bearish but not extreme. Good zone for patient spot accumulation.'; scores.tech = 65; }
+      else if (rsi < 58) { rsiSignal = 'neutral'; rsiInterp = '<strong>Mid-range:</strong> No strong RSI signal. Trend and volume signals take priority. Watch for breakout of this range.'; scores.tech = 50; }
+      else if (rsi < 72) { rsiSignal = 'neutral'; rsiInterp = '<strong>Elevated momentum:</strong> Uptrend intact but overbought risk rising. Tighten stops on existing longs, avoid new entries.'; scores.tech = 38; }
+      else { rsiSignal = 'bearish'; rsiInterp = '<strong>Overbought (&gt;72):</strong> Historically elevated. Not a short signal alone, but high risk for new longs. Wait for RSI to cool below 60.'; scores.tech = 22; }
+
+      setCard('rsi', { signal: rsiSignal, value: rsiVal.toString(), sub: '14-period daily RSI · computed live', interp: rsiInterp });
+
+      // Push RSI scores to chart history
+      historicalData.rsi = historicalData.labels.map(() => rsiToScore(rsi));
     }
-    setCard('ratio', {
-      signal: ratioSignal,
-      value: ratioStr,
-      sub: 'ETH relative to BTC',
-      interp: ratioInterp
-    });
 
-    scores.tech = (scores.tech || 0) ;
+    // EMA 21 vs EMA 55
+    const ema21 = calcEMA(closes.slice(-21), 21);
+    const ema55 = calcEMA(closes.slice(-55), 55);
+    const emaDiff = ((ema21 - ema55) / ema55) * 100;
+    const currentPrice = closes[closes.length - 1];
 
-    return { btcP, ethP, btcC, ethC };
-  } catch (e) {
-    console.error('Price fetch failed', e);
+    let emaSignal, emaInterp, emaSub;
+    if (ema21 > ema55 && currentPrice > ema21) {
+      emaSignal = 'bullish';
+      emaSub = `EMA21 $${Math.round(ema21).toLocaleString()} › EMA55 $${Math.round(ema55).toLocaleString()} (+${emaDiff.toFixed(2)}%)`;
+      emaInterp = '<strong>Bullish crossover:</strong> Price above both EMAs and 21 above 55. Trend is up. Valid context for long entries on pullbacks to EMA21.';
+    } else if (ema21 > ema55) {
+      emaSignal = 'neutral';
+      emaSub = `EMA21 $${Math.round(ema21).toLocaleString()} › EMA55 $${Math.round(ema55).toLocaleString()}`;
+      emaInterp = '<strong>Uptrend but price lagging:</strong> EMAs bullish but price pulled below EMA21. Potential pullback entry or early warning of trend weakness.';
+    } else {
+      emaSignal = 'bearish';
+      emaSub = `EMA21 $${Math.round(ema21).toLocaleString()} ‹ EMA55 $${Math.round(ema55).toLocaleString()} (${emaDiff.toFixed(2)}%)`;
+      emaInterp = '<strong>Bearish alignment:</strong> 21 EMA below 55 EMA. Downtrend context — avoid long entries. Wait for crossover before considering longs.';
+    }
+
+    const emaScore = ema21 > ema55 ? (currentPrice > ema21 ? 72 : 55) : 30;
+    setCard('ema', { signal: emaSignal, value: ema21 > ema55 ? '↑ BULL' : '↓ BEAR', sub: emaSub, interp: emaInterp });
+
+    // 7d price trend
+    const price7dAgo = closes[closes.length - 14]; // ~7 days (4h candles)
+    const trend7d = ((currentPrice - price7dAgo) / price7dAgo) * 100;
+    el('btc-7d').textContent = (trend7d >= 0 ? '+' : '') + trend7d.toFixed(1) + '%';
+    el('btc-7d').style.color = trend7d >= 0 ? 'var(--accent)' : 'var(--danger)';
+    el('btc-ema-sub').textContent = `EMA21 ${ema21 > ema55 ? '›' : '‹'} EMA55 · ${ema21 > ema55 ? 'uptrend' : 'downtrend'}`;
+
+    // Volume momentum (use high-low range as proxy since free tier has no volume)
+    const recentRange = data.slice(-14).reduce((a, d) => a + (d[2] - d[3]), 0) / 14;
+    const avgRange = data.slice(-90).reduce((a, d) => a + (d[2] - d[3]), 0) / data.length;
+    const volRatio = recentRange / avgRange;
+
+    let volSignal, volInterp, volScore;
+    if (volRatio > 1.5) { volSignal = 'bullish'; volInterp = '<strong>High activity:</strong> Recent candle ranges significantly above average — elevated market participation. Breakouts more likely to hold.'; volScore = 68; }
+    else if (volRatio > 1.1) { volSignal = 'bullish'; volInterp = '<strong>Above average:</strong> Slightly elevated activity. Supports current price action but not extreme.'; volScore = 58; }
+    else if (volRatio > 0.8) { volSignal = 'neutral'; volInterp = '<strong>Average activity:</strong> Normal market conditions. No strong volume signal either way.'; volScore = 50; }
+    else { volSignal = 'bearish'; volInterp = '<strong>Low activity:</strong> Reduced participation — moves less reliable, breakouts more likely to fail. Wait for volume confirmation.'; volScore = 35; }
+
+    setCard('vol', { signal: volSignal, value: volRatio.toFixed(2) + 'x', sub: '14d vs 90d average candle range', interp: volInterp });
+
+    // Blend RSI + EMA + Vol into tech score
+    scores.tech = Math.round((rsiToScore(rsi || 50) + emaScore + volScore) / 3);
+    updateComposite();
+  } catch(e) {
+    console.error('OHLC fetch failed', e);
+    setCard('rsi', { signal: 'neutral', value: '—', sub: 'API unavailable', interp: 'Could not compute RSI. Check TradingView manually.' });
+    setCard('ema', { signal: 'neutral', value: '—', sub: 'API unavailable', interp: 'Could not compute EMA. Check TradingView manually.' });
+    setCard('vol', { signal: 'neutral', value: '—', sub: 'API unavailable', interp: 'Could not compute volume signal.' });
   }
 }
 
 async function loadFearGreed() {
   try {
-    const res = await fetch('https://api.alternative.me/fng/?limit=1');
+    // Get 30 days of FG history for the chart
+    const res = await fetch('https://api.alternative.me/fng/?limit=30');
     const data = await res.json();
-    const val = parseInt(data.data[0].value);
-    const label = data.data[0].value_classification;
+    const entries = data.data.reverse(); // oldest first
+
+    // Build chart labels and FG line
+    historicalData.labels = entries.map(d => {
+      const date = new Date(d.timestamp * 1000);
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    });
+    historicalData.fg = entries.map(d => fgToScore(parseInt(d.value)));
+    historicalData.composite = entries.map(d => fgToScore(parseInt(d.value))); // placeholder until all scores load
+    historicalData.rsi = new Array(entries.length).fill(null);
+
+    // Current value
+    const latest = entries[entries.length - 1];
+    const val = parseInt(latest.value);
+    const label = latest.value_classification;
 
     let signal, interp;
-    if (val <= 25) {
-      signal = 'bullish';
-      interp = '<strong>Extreme Fear</strong> — historically strong buy zones. Market overreacting to downside. Consider spot accumulation.';
-      scores.sent = 80;
-    } else if (val <= 45) {
-      signal = 'bullish';
-      interp = '<strong>Fear</strong> — sentiment negative but not extreme. Good zone for disciplined entries. Avoid over-leveraging.';
-      scores.sent = 65;
-    } else if (val <= 60) {
-      signal = 'neutral';
-      interp = '<strong>Neutral</strong> — no strong crowd bias. Trade setups on technical merits. Funding rates become more important.';
-      scores.sent = 50;
-    } else if (val <= 80) {
-      signal = 'neutral';
-      interp = '<strong>Greed</strong> — sentiment elevated. Reduce new long exposure. Markets can stay greedy but risk/reward worsens.';
-      scores.sent = 38;
-    } else {
-      signal = 'bearish';
-      interp = '<strong>Extreme Greed</strong> — historically near tops. Take profits on longs. Avoid new entries. Correction risk is high.';
-      scores.sent = 20;
-    }
+    if (val <= 20) { signal = 'bullish'; interp = '<strong>Extreme Fear:</strong> Historically excellent buy zones. Market overreacting. Consider spot accumulation. Crowd is wrong at extremes.'; scores.sent = 85; }
+    else if (val <= 35) { signal = 'bullish'; interp = '<strong>Fear:</strong> Negative sentiment but not extreme. Good zone for disciplined entries. Avoid over-leveraging into this.'; scores.sent = 68; }
+    else if (val <= 55) { signal = 'neutral'; interp = '<strong>Neutral:</strong> No strong crowd bias. Trade on technical merits. Funding rates and RSI become primary inputs.'; scores.sent = 52; }
+    else if (val <= 75) { signal = 'neutral'; interp = '<strong>Greed:</strong> Sentiment elevated. Reduce new long exposure. Markets can stay greedy but risk/reward worsens significantly.'; scores.sent = 38; }
+    else { signal = 'bearish'; interp = '<strong>Extreme Greed:</strong> Historically near tops. Take profits on longs. Avoid new entries. Correction risk is high at these levels.'; scores.sent = 18; }
 
-    setCard('fg', {
-      signal,
-      value: val.toString(),
-      sub: label + ' · Updated daily',
-      interp
-    });
+    setCard('fg', { signal, value: val.toString(), sub: label + ' · Updated daily', interp });
     updateComposite();
-  } catch (e) {
-    setCard('fg', { signal: 'neutral', value: 'ERR', sub: 'API unavailable', interp: 'Could not load Fear & Greed data. Check alternative.me manually.' });
-  }
-}
-
-async function loadRSI() {
-  try {
-    // Fetch 30 days of daily OHLC for BTC
-    const res = await fetch('https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30');
-    const data = await res.json();
-    const closes = data.map(d => d[4]);
-    const rsi = calcRSI(closes, 14);
-
-    if (rsi === null) throw new Error('Not enough data');
-
-    const rsiVal = Math.round(rsi);
-    let signal, interp;
-    if (rsi < 30) {
-      signal = 'bullish';
-      interp = '<strong>Oversold (&lt;30):</strong> Strong mean-reversion signal. High probability bounce zone. Look for additional confluence before entering.';
-      scores.tech = 80;
-    } else if (rsi < 45) {
-      signal = 'bullish';
-      interp = '<strong>Below midline:</strong> Momentum slightly bearish but not extreme. Good zone for patient accumulation on spot.';
-      scores.tech = 62;
-    } else if (rsi < 60) {
-      signal = 'neutral';
-      interp = '<strong>Neutral range:</strong> No strong RSI signal. Trend and volume indicators become primary inputs.';
-      scores.tech = 50;
-    } else if (rsi < 75) {
-      signal = 'neutral';
-      interp = '<strong>Elevated momentum:</strong> Uptrend intact but overbought risk rising. Tighten stops on existing longs.';
-      scores.tech = 40;
-    } else {
-      signal = 'bearish';
-      interp = '<strong>Overbought (&gt;75):</strong> Historically elevated. Not a short signal alone, but avoid new longs until RSI cools.';
-      scores.tech = 22;
-    }
-
-    setCard('rsi', {
-      signal,
-      value: rsiVal.toString(),
-      sub: '14-period daily RSI · Computed live',
-      interp
-    });
-    updateComposite();
-  } catch (e) {
-    setCard('rsi', { signal: 'neutral', value: '—', sub: 'Calculation failed', interp: 'Could not compute RSI. Check TradingView for manual RSI.' });
+    updateChart();
+  } catch(e) {
+    setCard('fg', { signal: 'neutral', value: 'ERR', sub: 'API unavailable', interp: 'Could not load Fear & Greed. Check alternative.me manually.' });
   }
 }
 
@@ -1127,87 +892,59 @@ async function loadGlobal() {
     const dom = data.data.market_cap_percentage.btc;
     const mcChange = data.data.market_cap_change_percentage_24h_usd;
     const totalMC = data.data.total_market_cap.usd;
+    const mcStr = (totalMC / 1e12).toFixed(2) + 'T';
+
+    el('mc-val').textContent = '$' + mcStr;
+    const mcc = el('mc-change'); mcc.textContent = fmtPct(mcChange); mcc.className = 'price-change ' + (mcChange >= 0 ? 'pos' : 'neg');
+    el('mc-sub').textContent = 'Total crypto market cap';
 
     // BTC Dominance
-    let domSignal, domInterp;
-    if (dom > 58) {
-      domSignal = 'bearish';
-      domInterp = '<strong>BTC dominance high:</strong> Capital concentrated in BTC. Altcoins and ETH underperforming. Risk-off environment — stick to BTC/ETH only.';
-      scores.chain = (scores.chain || 50);
-    } else if (dom > 52) {
-      domSignal = 'neutral';
-      domInterp = '<strong>BTC dominance moderate:</strong> Balanced market. ETH perps viable. Selective altcoin exposure possible but keep it small.';
-      scores.chain = scores.chain || 52;
-    } else {
-      domSignal = 'bullish';
-      domInterp = '<strong>BTC dominance falling:</strong> Risk appetite increasing. ETH and majors outperforming. Altseason conditions may be developing.';
-      scores.chain = scores.chain || 65;
-    }
+    let domSignal, domInterp, domChainScore;
+    if (dom > 60) { domSignal = 'bearish'; domInterp = '<strong>High dominance (&gt;60%):</strong> Capital concentrated in BTC. Alts and ETH underperforming. Risk-off — stick to BTC only.'; domChainScore = 35; }
+    else if (dom > 54) { domSignal = 'neutral'; domInterp = '<strong>Moderate dominance:</strong> Balanced market. ETH perps viable. Limited altcoin exposure OK with tight stops.'; domChainScore = 50; }
+    else if (dom > 48) { domSignal = 'bullish'; domInterp = '<strong>Falling dominance:</strong> Risk appetite increasing. ETH and majors outperforming. Altseason conditions developing.'; domChainScore = 65; }
+    else { domSignal = 'bullish'; domInterp = '<strong>Low dominance (&lt;48%):</strong> Altseason likely in progress. Broad crypto gains across the board. ETH perps highly viable.'; domChainScore = 75; }
 
-    setCard('dom', {
-      signal: domSignal,
-      value: dom.toFixed(1) + '%',
-      sub: 'Bitcoin share of total crypto market cap',
-      interp: domInterp
-    });
+    setCard('dom', { signal: domSignal, value: dom.toFixed(1) + '%', sub: 'Bitcoin share of total market cap', interp: domInterp });
 
-    // Market cap change
-    let mcSignal, mcInterp;
-    if (mcChange > 4) {
-      mcSignal = 'bullish';
-      mcInterp = '<strong>Strong inflows:</strong> Total market expanding rapidly. Risk-on sentiment. Good backdrop for longs — but watch for overextension.';
-      scores.chain = Math.max(scores.chain || 0, 72);
-    } else if (mcChange > 1) {
-      mcSignal = 'bullish';
-      mcInterp = '<strong>Positive momentum:</strong> Market growing steadily. Supportive backdrop for long positions on pullbacks.';
-      scores.chain = Math.max(scores.chain || 0, 60);
-    } else if (mcChange > -2) {
-      mcSignal = 'neutral';
-      mcInterp = '<strong>Flat market:</strong> Sideways total market cap. Range-trading strategies preferred over directional bets.';
-      scores.chain = scores.chain || 50;
-    } else {
-      mcSignal = 'bearish';
-      mcInterp = '<strong>Market contracting:</strong> Capital leaving crypto. Avoid new longs. Consider hedging spot with small perp shorts.';
-      scores.chain = Math.min(scores.chain || 100, 28);
-    }
+    // Market cap momentum
+    let mcSignal, mcInterp, mcChainScore;
+    if (mcChange > 5) { mcSignal = 'bullish'; mcInterp = '<strong>Strong inflows:</strong> Market expanding fast. Risk-on. Good backdrop for longs — watch for overextension.'; mcChainScore = 75; }
+    else if (mcChange > 1.5) { mcSignal = 'bullish'; mcInterp = '<strong>Positive momentum:</strong> Market growing steadily. Supportive backdrop for long positions on pullbacks.'; mcChainScore = 63; }
+    else if (mcChange > -1.5) { mcSignal = 'neutral'; mcInterp = '<strong>Flat market:</strong> Sideways total market cap. Range-trading strategies preferred. No strong directional edge.'; mcChainScore = 50; }
+    else if (mcChange > -4) { mcSignal = 'bearish'; mcInterp = '<strong>Outflows detected:</strong> Capital leaving crypto. Avoid new longs. Consider reducing exposure.'; mcChainScore = 35; }
+    else { mcSignal = 'bearish'; mcInterp = '<strong>Strong outflows:</strong> Market contracting sharply. Defensive positioning. Consider hedging spot with small perp short.'; mcChainScore = 20; }
 
-    const mcStr = (totalMC / 1e12).toFixed(2) + 'T';
-    setCard('mc', {
-      signal: mcSignal,
-      value: fmtPct(mcChange),
-      sub: 'Total market cap: $' + mcStr + ' · 24h change',
-      interp: mcInterp
-    });
+    setCard('mc', { signal: mcSignal, value: fmtPct(mcChange), sub: 'Total market: $' + mcStr + ' · 24h', interp: mcInterp });
 
+    scores.chain = Math.round((domChainScore + mcChainScore) / 2);
     updateComposite();
-  } catch (e) {
+  } catch(e) {
     setCard('dom', { signal: 'neutral', value: '—', sub: 'API unavailable', interp: 'Could not load global data.' });
     setCard('mc', { signal: 'neutral', value: '—', sub: 'API unavailable', interp: 'Could not load global data.' });
   }
 }
 
-// ─── Main ──────────────────────────────────────────────────────────────────
-
+// ─── Main ────────────────────────────────────────────────────────────────────
 async function loadAll() {
   const now = new Date();
-  document.getElementById('last-update').textContent =
-    now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  el('last-update').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   scores.tech = null;
   scores.chain = null;
   scores.sent = null;
 
   await Promise.all([
-    loadPrices(),
     loadFearGreed(),
     loadGlobal(),
+    loadPricesAndTech(),
   ]);
-  await loadRSI();
+  await loadOHLC();
   updateComposite();
 }
 
+initChart();
 loadAll();
-// Auto-refresh every 5 minutes
 setInterval(loadAll, 5 * 60 * 1000);
 </script>
 </body>
