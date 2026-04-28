@@ -7,382 +7,503 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
-:root {
---bg:#0a0a0a; --bg2:#141414; --bg3:#1e1e1e;
---border:rgba(255,255,255,0.1); --text:#ffffff; --text2:#cccccc;
---muted:#888888; --dim:#444444;
---green:#b8ff45; --blue:#45d4ff; --orange:#ffb545; --red:#ff5555;
---mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+:root{
+--bg:#0a0a0a;--bg2:#141414;--bg3:#1e1e1e;
+--border:rgba(255,255,255,0.1);--text:#ffffff;--text2:#cccccc;
+--muted:#888888;--dim:#444444;
+--green:#b8ff45;--blue:#45d4ff;--orange:#ffb545;--red:#ff5555;
+--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;}
-header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;}
-.logo{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--green);text-transform:uppercase;}
-.hdr-right{display:flex;align-items:center;gap:16px;}
-.live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted);}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:20;}
+.logo{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--green);text-transform:uppercase;}
+.hdr-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
 .upd{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.api-badge{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;letter-spacing:.06em;}
+.api-ok{background:rgba(184,255,69,.1);color:var(--green);}
+.api-warn{background:rgba(255,181,69,.1);color:var(--orange);}
+.api-err{background:rgba(255,85,85,.1);color:var(--red);}
 .refresh-btn{font-family:var(--mono);font-size:11px;color:var(--text2);border:1px solid var(--border);background:none;padding:6px 14px;border-radius:4px;cursor:pointer;transition:all .15s;}
 .refresh-btn:hover{color:var(--green);border-color:var(--green);}
-.proxy-badge{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;letter-spacing:.06em;}
-.proxy-ok{background:rgba(184,255,69,.1);color:var(--green);}
-.proxy-warn{background:rgba(255,181,69,.1);color:var(--orange);}
-.proxy-err{background:rgba(255,85,85,.1);color:var(--red);}
-main{max-width:1200px;margin:0 auto;padding:24px 28px;display:grid;gap:16px;}
-/* REC */
-.rec{border-radius:6px;padding:28px 32px;display:grid;grid-template-columns:auto 1fr auto;gap:32px;align-items:center;border:1px solid var(--border);transition:all .5s;}
+.refresh-btn.active{color:var(--green);border-color:var(--green);}
+
+/* ── ASSET TABS ── */
+.asset-bar{max-width:1200px;margin:16px auto 0;padding:0 28px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.asset-tab{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;padding:7px 16px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;transition:all .15s;text-transform:uppercase;}
+.asset-tab:hover{color:var(--text2);border-color:rgba(255,255,255,.25);}
+.asset-tab.active{color:var(--bg);background:var(--green);border-color:var(--green);}
+.asset-score-pill{font-family:var(--mono);font-size:9px;padding:2px 5px;border-radius:2px;margin-left:5px;font-weight:400;}
+.compare-btn{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--border);background:none;padding:5px 12px;border-radius:4px;cursor:pointer;transition:all .15s;letter-spacing:.06em;}
+.compare-btn:hover{color:var(--text2);border-color:rgba(255,255,255,.25);}
+.compare-btn.active{color:var(--blue);border-color:var(--blue);}
+
+/* ── COMPARE VIEW ── */
+.compare-grid{max-width:1200px;margin:16px auto;padding:0 28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;animation:fadeIn .3s ease;}
+.cmp-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:18px 20px;cursor:pointer;transition:all .15s;}
+.cmp-card:hover{border-color:rgba(255,255,255,.25);}
+.cmp-card.best{border-color:var(--green);box-shadow:0 0 0 1px rgba(184,255,69,.2);}
+.cmp-sym{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;}
+.cmp-score{font-family:var(--mono);font-size:36px;font-weight:600;line-height:1;}
+.cmp-sig{font-family:var(--mono);font-size:10px;margin-top:4px;font-weight:600;letter-spacing:.06em;}
+.cmp-conf{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px;}
+.cmp-best{font-family:var(--mono);font-size:9px;color:var(--green);margin-top:6px;letter-spacing:.06em;}
+
+/* ── MAIN ── */
+main{max-width:1200px;margin:0 auto;padding:16px 28px;display:grid;gap:14px;animation:fadeIn .3s ease;}
+
+/* ── RECOMMENDATION ── */
+.rec{border-radius:6px;padding:24px 28px;display:grid;grid-template-columns:120px 1fr auto;gap:28px;align-items:center;border:1px solid var(--border);transition:all .5s;}
 .rec.buy{background:rgba(184,255,69,.07);border-color:rgba(184,255,69,.3);}
 .rec.sell{background:rgba(255,85,85,.07);border-color:rgba(255,85,85,.3);}
 .rec.hold{background:rgba(255,181,69,.05);border-color:rgba(255,181,69,.2);}
 .rec.loading{background:var(--bg2);}
-.score-num{font-family:var(--mono);font-size:68px;font-weight:600;line-height:1;transition:color .5s;}
+.score-num{font-family:var(--mono);font-size:64px;font-weight:600;line-height:1;transition:color .5s;}
 .score-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;margin-top:4px;}
-.rec-tag{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.1em;padding:4px 12px;border-radius:3px;text-transform:uppercase;margin-bottom:8px;}
+.rec-tag{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;padding:3px 10px;border-radius:3px;text-transform:uppercase;margin-bottom:6px;}
 .tag-buy{background:rgba(184,255,69,.15);color:var(--green);}
 .tag-sell{background:rgba(255,85,85,.15);color:var(--red);}
 .tag-hold{background:rgba(255,181,69,.15);color:var(--orange);}
 .tag-loading{background:var(--bg3);color:var(--muted);}
-.rec-title{font-size:20px;font-weight:600;margin-bottom:8px;}
-.rec-detail{font-size:13px;color:var(--text2);line-height:1.75;max-width:520px;}
-.rec-detail strong{color:var(--text);font-weight:600;}
-.rec-right{min-width:160px;}
-.alloc-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
-.alloc-val{font-family:var(--mono);font-size:28px;font-weight:600;margin-bottom:4px;}
-.alloc-sub{font-size:12px;color:var(--muted);margin-bottom:14px;}
-.pips{display:flex;gap:4px;margin-bottom:8px;}
-.pip{width:9px;height:9px;border-radius:50%;background:var(--dim);transition:background .4s;}
+.rec-title{font-size:18px;font-weight:600;margin-bottom:6px;}
+.rec-detail{font-size:13px;color:var(--text2);line-height:1.7;max-width:480px;}
+.rec-detail strong{color:var(--text);}
+.rec-right{min-width:150px;}
+.conf-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.conf-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+.conf-badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;letter-spacing:.06em;}
+.conf-high{background:rgba(184,255,69,.15);color:var(--green);}
+.conf-med{background:rgba(255,181,69,.15);color:var(--orange);}
+.conf-low{background:rgba(255,85,85,.15);color:var(--red);}
+.alloc-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.alloc-val{font-family:var(--mono);font-size:26px;font-weight:600;margin-bottom:3px;}
+.alloc-sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
+.pips{display:flex;gap:4px;margin-bottom:6px;}
+.pip{width:8px;height:8px;border-radius:50%;background:var(--dim);transition:background .4s;}
 .pip.g{background:var(--green);}
 .pip.o{background:var(--orange);}
 .pip.r{background:var(--red);}
+.vote-row{font-family:var(--mono);font-size:11px;color:var(--muted);}
 .disc{font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;letter-spacing:.05em;}
-/* SCORES */
-.scores{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:20px 24px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
-.sc{padding:0 18px;border-right:1px solid var(--border);}
+
+/* ── POSITION CALCULATOR ── */
+.calc-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.calc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.calc-title{font-size:14px;font-weight:600;}
+.calc-toggle{font-family:var(--mono);font-size:10px;color:var(--muted);background:none;border:1px solid var(--border);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.06em;transition:all .15s;}
+.calc-toggle:hover{color:var(--text2);border-color:rgba(255,255,255,.25);}
+.calc-body{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;align-items:end;}
+.calc-field label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:5px;}
+.calc-field input{font-family:var(--mono);font-size:13px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;width:100%;outline:none;transition:border .15s;}
+.calc-field input:focus{border-color:rgba(255,255,255,.3);}
+.calc-result{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:12px 14px;margin-top:14px;}
+.calc-result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
+.cr-item{padding:0 16px;border-right:1px solid var(--border);}
+.cr-item:first-child{padding-left:0;}
+.cr-item:last-child{border-right:none;}
+.cr-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+.cr-val{font-family:var(--mono);font-size:18px;font-weight:600;}
+.cr-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.calc-warn{font-family:var(--mono);font-size:10px;color:var(--orange);margin-top:10px;padding:8px 12px;background:rgba(255,181,69,.07);border-radius:3px;}
+
+/* ── CATEGORY SCORES ── */
+.scores{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:18px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
+.sc{padding:0 16px;border-right:1px solid var(--border);}
 .sc:first-child{padding-left:0;}
 .sc:last-child{border-right:none;padding-right:0;}
-.sc-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
-.sc-num{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1;margin-bottom:3px;}
+.sc-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+.sc-num{font-family:var(--mono);font-size:24px;font-weight:600;line-height:1;margin-bottom:2px;}
 .sc-sub{font-size:11px;color:var(--muted);}
-.sc-bar{height:3px;background:var(--dim);border-radius:2px;margin-top:8px;}
+.sc-bar{height:3px;background:var(--dim);border-radius:2px;margin-top:6px;}
 .sc-fill{height:100%;border-radius:2px;transition:width .8s;}
-/* CHART */
-.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:22px 26px;}
-.chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
-.chart-title{font-size:15px;font-weight:600;}
+
+/* ── CHART ── */
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.chart-title{font-size:14px;font-weight:600;}
 .chart-sub{font-family:var(--mono);font-size:11px;color:var(--muted);}
-.chart-leg{display:flex;gap:16px;}
-.leg{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text2);}
-.leg-ln{width:16px;height:2px;border-radius:1px;}
-.chart-wrap{height:190px;position:relative;}
-.chart-zones{display:flex;gap:16px;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--muted);}
-.zi{display:flex;align-items:center;gap:5px;}
-.zd{width:10px;height:10px;border-radius:2px;}
-/* PRICES */
-.prices{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-.pc{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px 18px;}
-.pt{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;}
-.pv{font-family:var(--mono);font-size:19px;font-weight:600;}
-.pch{font-family:var(--mono);font-size:12px;font-weight:500;margin-left:6px;}
+.chart-leg{display:flex;gap:14px;}
+.leg{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;color:var(--text2);}
+.leg-ln{width:14px;height:2px;border-radius:1px;}
+.chart-wrap{height:180px;position:relative;}
+.chart-zones{display:flex;gap:14px;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.zi{display:flex;align-items:center;gap:4px;}
+.zd{width:9px;height:9px;border-radius:2px;}
+
+/* ── PRICES ── */
+.prices{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.pc{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;}
+.pt{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.pv{font-family:var(--mono);font-size:18px;font-weight:600;}
+.pch{font-family:var(--mono);font-size:12px;font-weight:500;margin-left:5px;}
 .pch.up{color:var(--green);}
 .pch.dn{color:var(--red);}
 .ps{font-size:12px;color:var(--muted);margin-top:3px;}
-/* SIGNAL GRID */
+
+/* ── SIGNAL GRID ── */
 .sec{display:flex;align-items:center;justify-content:space-between;}
 .sec-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;}
 .sec-src{font-size:12px;color:var(--muted);}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:18px 20px;position:relative;overflow:hidden;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px 18px;position:relative;overflow:hidden;}
 .card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
 .card.bullish::before{background:var(--green);}
 .card.bearish::before{background:var(--red);}
 .card.neutral::before{background:var(--orange);}
 .card.loading::before{background:var(--dim);}
 .card.manual::before{background:var(--dim);}
-.card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-.card-src{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;}
-.card-name{font-size:14px;font-weight:600;}
-.badge{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:3px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;}
+.card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.card-src{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:2px;}
+.card-name{font-size:13px;font-weight:600;}
+.badge{font-family:var(--mono);font-size:9px;padding:3px 7px;border-radius:3px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;}
 .b-bullish{background:rgba(184,255,69,.14);color:var(--green);}
 .b-bearish{background:rgba(255,85,85,.14);color:var(--red);}
 .b-neutral{background:rgba(255,181,69,.14);color:var(--orange);}
 .b-loading{background:var(--bg3);color:var(--muted);}
 .b-manual{background:var(--bg3);color:var(--muted);}
-.card-score{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:4px;}
-.card-val{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1;margin-bottom:5px;}
+.card-score{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:3px;}
+.card-val{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1;margin-bottom:4px;}
 .card-val.bullish{color:var(--green);}
 .card-val.bearish{color:var(--red);}
 .card-val.neutral{color:var(--orange);}
 .card-val.loading{color:var(--dim);}
-.card-val.manual{color:var(--muted);font-size:15px;line-height:1.5;margin-top:4px;}
-.card-sub{font-size:12px;color:var(--muted);margin-bottom:10px;}
-.card-int{font-size:12px;color:var(--text2);border-top:1px solid var(--border);padding-top:10px;line-height:1.65;}
-.card-int strong{color:var(--text);font-weight:600;}
+.card-val.manual{color:var(--muted);font-size:14px;line-height:1.5;margin-top:3px;}
+.card-sub{font-size:11px;color:var(--muted);margin-bottom:8px;}
+.card-int{font-size:12px;color:var(--text2);border-top:1px solid var(--border);padding-top:8px;line-height:1.6;}
+.card-int strong{color:var(--text);}
 .card-int a{color:var(--blue);text-decoration:none;}
 .spinner{display:inline-block;animation:spin 1s linear infinite;}
-/* CHECKLIST */
-.cl{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+
+/* ── CHECKLIST + LINKS ── */
+.cl{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:18px 22px;}
 .cl table{width:100%;border-collapse:collapse;font-size:13px;}
-.cl th{text-align:left;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:400;padding:0 0 10px;border-bottom:1px solid var(--border);}
-.cl td{padding:10px 0;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top;}
+.cl th{text-align:left;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:400;padding:0 0 8px;border-bottom:1px solid var(--border);}
+.cl td{padding:8px 0;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top;}
 .cl td:first-child{color:var(--text);font-weight:600;width:28%;}
 .cl td:nth-child(2){width:28%;color:var(--muted);font-family:var(--mono);font-size:11px;}
 .cl tr:last-child td{border-bottom:none;}
-/* LINKS */
-.links{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.links{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
 .links-lbl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-right:4px;}
-.lnk{font-family:var(--mono);font-size:10px;color:var(--text2);border:1px solid var(--border);padding:4px 10px;border-radius:4px;text-decoration:none;transition:all .15s;}
+.lnk{font-family:var(--mono);font-size:10px;color:var(--text2);border:1px solid var(--border);padding:4px 9px;border-radius:4px;text-decoration:none;transition:all .15s;}
 .lnk:hover{color:var(--green);border-color:var(--green);}
 .lnk::after{content:' ↗';font-size:9px;}
-@media(max-width:800px){.scores{grid-template-columns:repeat(2,1fr)}.prices{grid-template-columns:repeat(2,1fr)}.rec{grid-template-columns:1fr;gap:16px}}
+
+@media(max-width:900px){
+  .scores{grid-template-columns:repeat(2,1fr);}
+  .prices{grid-template-columns:repeat(2,1fr);}
+  .rec{grid-template-columns:1fr;gap:14px;}
+  .calc-body{grid-template-columns:1fr 1fr;}
+  .calc-result-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .cr-item{padding:0;border-right:none;}
+}
 </style>
 </head>
 <body>
+
 <header>
-<div class="logo">Signal/Dash <span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:8px">v3.3</span></div>
-<div class="hdr-right">
-<div class="live"><div class="dot"></div>LIVE</div>
-<div class="upd" id="upd">—</div>
-<span class="proxy-badge proxy-ok" id="proxy-status" title="Active CORS proxy">PROXY OK</span>
-<button class="refresh-btn" onclick="loadAll()">↺ REFRESH</button>
-</div>
+  <div class="logo">Signal/Dash <span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">v4.1</span></div>
+  <div class="hdr-right">
+    <div class="live"><div class="dot"></div>LIVE</div>
+    <div class="upd" id="upd">—</div>
+    <span class="api-badge api-warn" id="api-badge">CONNECTING</span>
+    <button class="refresh-btn" onclick="loadAll()">↺ REFRESH</button>
+    <button class="refresh-btn" id="auto-btn" onclick="toggleAutoRefresh()">⏱ AUTO: OFF</button>
+  </div>
 </header>
-<main>
+
+<!-- ASSET TABS -->
+<div class="asset-bar">
+  <button class="asset-tab active" data-sym="BTCUSDT" onclick="switchAsset('BTCUSDT',this)">BTC <span class="asset-score-pill" id="pill-BTCUSDT">—</span></button>
+  <button class="asset-tab" data-sym="ETHUSDT" onclick="switchAsset('ETHUSDT',this)">ETH <span class="asset-score-pill" id="pill-ETHUSDT">—</span></button>
+  <button class="asset-tab" data-sym="SOLUSDT" onclick="switchAsset('SOLUSDT',this)">SOL <span class="asset-score-pill" id="pill-SOLUSDT">—</span></button>
+  <button class="asset-tab" data-sym="BNBUSDT" onclick="switchAsset('BNBUSDT',this)">BNB <span class="asset-score-pill" id="pill-BNBUSDT">—</span></button>
+  <button class="asset-tab" data-sym="XRPUSDT" onclick="switchAsset('XRPUSDT',this)">XRP <span class="asset-score-pill" id="pill-XRPUSDT">—</span></button>
+  <button class="compare-btn" id="compare-btn" onclick="toggleCompare()">⇌ COMPARE ALL</button>
+</div>
+
+<!-- COMPARE VIEW (hidden by default) -->
+<div class="compare-grid" id="compare-view" style="display:none;"></div>
+
+<main id="main-content">
+
 <!-- RECOMMENDATION -->
 <div class="rec loading" id="rec">
-<div style="text-align:center;min-width:110px">
-<div class="score-num" id="score-num">—</div>
-<div class="score-lbl">SCORE / 100</div>
-</div>
-<div>
-<div><span class="rec-tag tag-loading" id="rec-tag">LOADING</span></div>
-<div class="rec-title" id="rec-title">Fetching live signals...</div>
-<div class="rec-detail" id="rec-detail">Connecting to Binance and alternative.me. Takes ~5 seconds.</div>
-</div>
-<div class="rec-right">
-<div class="alloc-lbl">Suggested allocation</div>
-<div class="alloc-val" id="alloc">—</div>
-<div class="alloc-sub" id="alloc-sub">of capital</div>
-<div class="pips" id="pips"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
-<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">
-<span style="color:var(--green)" id="v-buy">—</span> BUY &nbsp;
-<span style="color:var(--orange)" id="v-hold">—</span> HOLD &nbsp;
-<span style="color:var(--red)" id="v-sell">—</span> SELL
-</div>
-</div>
+  <div style="text-align:center">
+    <div class="score-num" id="score-num">—</div>
+    <div class="score-lbl">SCORE / 100</div>
+  </div>
+  <div>
+    <div><span class="rec-tag tag-loading" id="rec-tag">LOADING</span></div>
+    <div class="rec-title" id="rec-title">Fetching live signals...</div>
+    <div class="rec-detail" id="rec-detail">Connecting to data sources. Press 'R' to refresh.</div>
+  </div>
+  <div class="rec-right">
+    <div class="conf-row">
+      <span class="conf-lbl">Confidence</span>
+      <span class="conf-badge conf-med" id="conf-badge">—</span>
+    </div>
+    <div class="alloc-lbl">Suggested allocation</div>
+    <div class="alloc-val" id="alloc">—</div>
+    <div class="alloc-sub" id="alloc-sub">of capital</div>
+    <div class="pips" id="pips">
+      <div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div>
+    </div>
+    <div class="vote-row">
+      <span style="color:var(--green)" id="v-buy">—</span> BUY &nbsp;
+      <span style="color:var(--orange)" id="v-hold">—</span> HOLD &nbsp;
+      <span style="color:var(--red)" id="v-sell">—</span> SELL
+    </div>
+  </div>
 </div>
 <div class="disc">NOT FINANCIAL ADVICE · EDUCATIONAL PURPOSES ONLY · ALWAYS USE A STOP-LOSS · NEVER RISK MORE THAN YOU CAN AFFORD TO LOSE</div>
+
+<!-- POSITION CALCULATOR -->
+<div class="calc-card">
+  <div class="calc-hdr">
+    <div class="calc-title">Position Size Calculator</div>
+    <button class="calc-toggle" onclick="toggleCalc()">▾ SHOW</button>
+  </div>
+  <div id="calc-body" style="display:none">
+    <div class="calc-body">
+      <div class="calc-field">
+        <label>Account Size ($)</label>
+        <input type="number" id="c-account" value="10000" min="0" oninput="calcPosition()">
+      </div>
+      <div class="calc-field">
+        <label>Risk Per Trade (%)</label>
+        <input type="number" id="c-risk" value="1.5" min="0" max="10" step="0.1" oninput="calcPosition()">
+      </div>
+      <div class="calc-field">
+        <label>Entry Price ($)</label>
+        <input type="number" id="c-entry" value="" min="0" placeholder="auto-filled" oninput="calcPosition()">
+      </div>
+      <div class="calc-field">
+        <label>Stop Loss ($)</label>
+        <input type="number" id="c-stop" value="" min="0" placeholder="e.g. 8% below" oninput="calcPosition()">
+      </div>
+    </div>
+    <div class="calc-result" id="calc-result">
+      <div class="calc-result-grid">
+        <div class="cr-item"><div class="cr-lbl">Position Size</div><div class="cr-val" id="cr-size">—</div><div class="cr-sub" id="cr-coins">— coins</div></div>
+        <div class="cr-item"><div class="cr-lbl">Max Risk $</div><div class="cr-val" id="cr-maxrisk">—</div><div class="cr-sub" id="cr-riskpct">of account</div></div>
+        <div class="cr-item"><div class="cr-lbl">Score Adj.</div><div class="cr-val" id="cr-adj">—</div><div class="cr-sub" id="cr-adjlbl">score multiplier</div></div>
+        <div class="cr-item"><div class="cr-lbl">Final Size</div><div class="cr-val" id="cr-final">—</div><div class="cr-sub" id="cr-finalcoins">adjusted</div></div>
+      </div>
+      <div class="calc-warn" id="calc-warn" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
 <!-- CATEGORY SCORES -->
 <div class="scores">
-<div class="sc"><div class="sc-lbl">Price &amp; Momentum</div><div class="sc-num" id="c-pm">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-pm" style="width:50%;background:var(--muted)"></div></div></div>
-<div class="sc"><div class="sc-lbl">Market Structure</div><div class="sc-num" id="c-ms">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-ms" style="width:50%;background:var(--muted)"></div></div></div>
-<div class="sc"><div class="sc-lbl">Sentiment</div><div class="sc-num" id="c-se">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-se" style="width:50%;background:var(--muted)"></div></div></div>
-<div class="sc"><div class="sc-lbl">Momentum / Trend</div><div class="sc-num" id="c-tr">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-tr" style="width:50%;background:var(--muted)"></div></div></div>
+  <div class="sc"><div class="sc-lbl">Price &amp; Momentum</div><div class="sc-num" id="c-pm">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-pm" style="width:0;background:var(--muted)"></div></div></div>
+  <div class="sc"><div class="sc-lbl">Market Structure</div><div class="sc-num" id="c-ms">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-ms" style="width:0;background:var(--muted)"></div></div></div>
+  <div class="sc"><div class="sc-lbl">Sentiment</div><div class="sc-num" id="c-se">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-se" style="width:0;background:var(--muted)"></div></div></div>
+  <div class="sc"><div class="sc-lbl">Momentum / Trend</div><div class="sc-num" id="c-tr">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-tr" style="width:0;background:var(--muted)"></div></div></div>
 </div>
+
 <!-- CHART -->
 <div class="chart-card">
-<div class="chart-hdr">
-<div><div class="chart-title">Composite Signal — 30 Day Trend</div><div class="chart-sub" id="chart-sub">Loading...</div></div>
-<div class="chart-leg">
-<div class="leg"><div class="leg-ln" style="background:var(--green)"></div>Composite</div>
-<div class="leg"><div class="leg-ln" style="background:var(--blue)"></div>Fear &amp; Greed</div>
-<div class="leg"><div class="leg-ln" style="background:var(--orange)"></div>RSI</div>
+  <div class="chart-hdr">
+    <div><div class="chart-title">Composite Signal — 30 Day Trend</div><div class="chart-sub" id="chart-sub">Loading...</div></div>
+    <div class="chart-leg">
+      <div class="leg"><div class="leg-ln" style="background:var(--green)"></div>Composite</div>
+      <div class="leg"><div class="leg-ln" style="background:var(--blue)"></div>Fear &amp; Greed</div>
+      <div class="leg"><div class="leg-ln" style="background:var(--orange)"></div>RSI</div>
+    </div>
+  </div>
+  <div class="chart-wrap"><canvas id="chart"></canvas></div>
+  <div class="chart-zones">
+    <div class="zi"><div class="zd" style="background:rgba(184,255,69,.4)"></div>Buy (&gt;60)</div>
+    <div class="zi"><div class="zd" style="background:rgba(255,181,69,.3)"></div>Hold (40–60)</div>
+    <div class="zi"><div class="zd" style="background:rgba(255,85,85,.35)"></div>Sell (&lt;40)</div>
+    <div style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted)" id="chart-pts">—</div>
+  </div>
 </div>
-</div>
-<div class="chart-wrap"><canvas id="chart"></canvas></div>
-<div class="chart-zones">
-<div class="zi"><div class="zd" style="background:rgba(184,255,69,.4)"></div>Buy zone (&gt;60)</div>
-<div class="zi"><div class="zd" style="background:rgba(255,181,69,.3)"></div>Hold (40–60)</div>
-<div class="zi"><div class="zd" style="background:rgba(255,85,85,.35)"></div>Sell (&lt;40)</div>
-<div style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted)" id="chart-pts">—</div>
-</div>
-</div>
+
 <!-- PRICES -->
 <div class="prices">
-<div class="pc"><div class="pt">BTC / USDT</div><div><span class="pv" id="btc-p">—</span><span class="pch" id="btc-c"></span></div><div class="ps" id="btc-s">—</div></div>
-<div class="pc"><div class="pt">ETH / USDT</div><div><span class="pv" id="eth-p">—</span><span class="pch" id="eth-c"></span></div><div class="ps" id="eth-s">—</div></div>
-<div class="pc"><div class="pt">BTC 7-day</div><div><span class="pv" id="btc7" style="font-size:18px">—</span></div><div class="ps" id="btc7s">via Binance</div></div>
-<div class="pc"><div class="pt">Funding Rate</div><div><span class="pv" id="fund-v" style="font-size:18px">—</span></div><div class="ps" id="fund-s">BTC perp · Binance</div></div>
+  <div class="pc"><div class="pt" id="lbl-main-p">ASSET / USDT</div><div><span class="pv" id="main-p">—</span><span class="pch" id="main-c"></span></div><div class="ps" id="main-s">—</div></div>
+  <div class="pc"><div class="pt">BTC / USDT</div><div><span class="pv" id="btc-p">—</span><span class="pch" id="btc-c"></span></div><div class="ps" id="btc-s">—</div></div>
+  <div class="pc"><div class="pt" id="lbl-7d">7-DAY TREND</div><div><span class="pv" id="asset7" style="font-size:18px">—</span></div><div class="ps" id="asset7s">—</div></div>
+  <div class="pc"><div class="pt">FUNDING RATE</div><div><span class="pv" id="fund-v" style="font-size:18px">—</span></div><div class="ps" id="fund-s">BTC perp</div></div>
 </div>
-<!-- SIGNALS -->
-<div class="sec"><div class="sec-lbl">Price &amp; Momentum</div><div class="sec-src">Binance API</div></div>
+
+<!-- SIGNALS: PRICE & MOMENTUM -->
+<div class="sec"><div class="sec-lbl">Price &amp; Momentum</div><div class="sec-src">Binance</div></div>
 <div class="grid">
-<div class="card loading" id="card-rsi">
-<div class="card-hdr"><div><div class="card-src">Binance · 8% weight</div><div class="card-name">RSI (14-day)</div></div><div class="badge b-loading" id="badge-rsi">LOADING</div></div>
-<div class="card-score" id="score-rsi">Signal score: —</div>
-<div class="card-val loading" id="val-rsi"><span class="spinner">⟳</span></div>
-<div class="card-sub" id="sub-rsi">Computing...</div>
-<div class="card-int" id="int-rsi">RSI 14-day — overbought/oversold momentum</div>
+  <div class="card loading" id="card-rsi">
+    <div class="card-hdr"><div><div class="card-src">Binance · 8% weight</div><div class="card-name">RSI (14-day)</div></div><div class="badge b-loading" id="badge-rsi">LOADING</div></div>
+    <div class="card-score" id="score-rsi">Signal score: —</div>
+    <div class="card-val loading" id="val-rsi"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-rsi">Computing...</div>
+    <div class="card-int" id="int-rsi">RSI 14-day — overbought/oversold momentum</div>
+  </div>
+  <div class="card loading" id="card-macd">
+    <div class="card-hdr"><div><div class="card-src">Binance · 7% weight</div><div class="card-name">MACD Signal</div></div><div class="badge b-loading" id="badge-macd">LOADING</div></div>
+    <div class="card-score" id="score-macd">Signal score: —</div>
+    <div class="card-val loading" id="val-macd"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-macd">Computing...</div>
+    <div class="card-int" id="int-macd">MACD crossover — trend momentum</div>
+  </div>
+  <div class="card loading" id="card-ma">
+    <div class="card-hdr"><div><div class="card-src">Binance · 5% weight</div><div class="card-name">MA Crossover 7/25/99d</div></div><div class="badge b-loading" id="badge-ma">LOADING</div></div>
+    <div class="card-score" id="score-ma">Signal score: —</div>
+    <div class="card-val loading" id="val-ma"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-ma">Computing...</div>
+    <div class="card-int" id="int-ma">Moving average alignment — trend direction</div>
+  </div>
+  <div class="card loading" id="card-200">
+    <div class="card-hdr"><div><div class="card-src">Binance · 5% weight</div><div class="card-name">Price vs 200d MA</div></div><div class="badge b-loading" id="badge-200">LOADING</div></div>
+    <div class="card-score" id="score-200">Signal score: —</div>
+    <div class="card-val loading" id="val-200"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-200">Computing...</div>
+    <div class="card-int" id="int-200">Bull/bear market context</div>
+  </div>
 </div>
-<div class="card loading" id="card-macd">
-<div class="card-hdr"><div><div class="card-src">Binance · 7% weight</div><div class="card-name">MACD Signal</div></div><div class="badge b-loading" id="badge-macd">LOADING</div></div>
-<div class="card-score" id="score-macd">Signal score: —</div>
-<div class="card-val loading" id="val-macd"><span class="spinner">⟳</span></div>
-<div class="card-sub" id="sub-macd">Computing...</div>
-<div class="card-int" id="int-macd">MACD crossover — trend momentum</div>
-</div>
-<div class="card loading" id="card-ma">
-<div class="card-hdr"><div><div class="card-src">Binance · 5% weight</div><div class="card-name">MA Crossover 7/25/99d</div></div><div class="badge b-loading" id="badge-ma">LOADING</div></div>
-<div class="card-score" id="score-ma">Signal score: —</div>
-<div class="card-val loading" id="val-ma"><span class="spinner">⟳</span></div>
-<div class="card-sub" id="sub-ma">Computing...</div>
-<div class="card-int" id="int-ma">Moving average alignment — trend direction</div>
-</div>
-<div class="card loading" id="card-200">
-<div class="card-hdr"><div><div class="card-src">Binance · 5% weight</div><div class="card-name">Price vs 200d MA</div></div><div class="badge b-loading" id="badge-200">LOADING</div></div>
-<div class="card-score" id="score-200">Signal score: —</div>
-<div class="card-val loading" id="val-200"><span class="spinner">⟳</span></div>
-<div class="card-sub" id="sub-200">Computing...</div>
-<div class="card-int" id="int-200">Bull/bear market context signal</div>
-</div>
-</div>
-<div class="sec"><div class="sec-lbl">Market Structure</div><div class="sec-src">Binance Futures API</div></div>
+
+<!-- SIGNALS: MARKET STRUCTURE -->
+<div class="sec"><div class="sec-lbl">Market Structure</div><div class="sec-src">Binance / Bybit</div></div>
 <div class="grid">
-<div class="card loading" id="card-fund">
-<div class="card-hdr"><div><div class="card-src">Binance Futures · 8% weight</div><div class="card-name">Funding Rate</div></div><div class="badge b-loading" id="badge-fund">LOADING</div></div>
-<div class="card-score" id="score-fund">Signal score: —</div>
-<div class="card-val loading" id="val-fund"><span class="spinner">⟳</span></div>
-<div class="card-sub" id="sub-fund">Fetching...</div>
-<div class="card-int" id="int-fund">Perp funding rate — crowd positioning</div>
+  <div class="card loading" id="card-fund">
+    <div class="card-hdr"><div><div class="card-src">Bybit Futures · 8% weight</div><div class="card-name">Funding Rate</div></div><div class="badge b-loading" id="badge-fund">LOADING</div></div>
+    <div class="card-score" id="score-fund">Signal score: —</div>
+    <div class="card-val loading" id="val-fund"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-fund">Fetching...</div>
+    <div class="card-int" id="int-fund">Perp funding rate — crowd positioning</div>
+  </div>
+  <div class="card loading" id="card-oi">
+    <div class="card-hdr"><div><div class="card-src">Bybit · 8% weight</div><div class="card-name">Open Interest</div></div><div class="badge b-loading" id="badge-oi">LOADING</div></div>
+    <div class="card-score" id="score-oi">Signal score: —</div>
+    <div class="card-val loading" id="val-oi"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-oi">Fetching...</div>
+    <div class="card-int" id="int-oi">OI trend — are new positions being opened?</div>
+  </div>
+  <div class="card loading" id="card-vol">
+    <div class="card-hdr"><div><div class="card-src">Binance · 7% weight</div><div class="card-name">Volume Momentum</div></div><div class="badge b-loading" id="badge-vol">LOADING</div></div>
+    <div class="card-score" id="score-vol">Signal score: —</div>
+    <div class="card-val loading" id="val-vol"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-vol">Computing...</div>
+    <div class="card-int" id="int-vol">24h volume vs 7-day average</div>
+  </div>
 </div>
-<div class="card loading" id="card-vol">
-<div class="card-hdr"><div><div class="card-src">Binance · 7% weight</div><div class="card-name">Volume Momentum</div></div><div class="badge b-loading" id="badge-vol">LOADING</div></div>
-<div class="card-score" id="score-vol">Signal score: —</div>
-<div class="card-val loading" id="val-vol"><span class="spinner">⟳</span></div>
-<div class="card-sub" id="sub-vol">Computing...</div>
-<div class="card-int" id="int-vol">24h volume vs 7-day average — participation signal</div>
-</div>
-<div class="card manual">
-<div class="card-hdr"><div><div class="card-src">Coinglass · 8% weight</div><div class="card-name">Open Interest</div></div><div class="badge b-manual">MANUAL</div></div>
-<div class="card-score">Check manually</div>
-<div class="card-val manual">→ Coinglass</div>
-<div class="card-sub">API blocked by browser</div>
-<div class="card-int"><strong>Bullish:</strong> OI rising + price rising. <strong>Bearish:</strong> OI rising + price falling. <a href="https://www.coinglass.com/OpenInterest" target="_blank">Open ↗</a></div>
-</div>
-</div>
-<div class="sec"><div class="sec-lbl">Sentiment</div><div class="sec-src">alternative.me</div></div>
+
+<!-- SIGNALS: SENTIMENT -->
+<div class="sec"><div class="sec-lbl">Sentiment</div><div class="sec-src">alternative.me / Binance</div></div>
 <div class="grid">
-<div class="card loading" id="card-fg">
-<div class="card-hdr"><div><div class="card-src">alternative.me · 10% weight</div><div class="card-name">Fear &amp; Greed Index</div></div><div class="badge b-loading" id="badge-fg">LOADING</div></div>
-<div class="card-score" id="score-fg">Signal score: —</div>
-<div class="card-val loading" id="val-fg"><span class="spinner">⟳</span></div>
-<div class="card-sub" id="sub-fg">Fetching...</div>
-<div class="card-int" id="int-fg">Crowd psychology — extremes are contrarian signals</div>
+  <div class="card loading" id="card-fg">
+    <div class="card-hdr"><div><div class="card-src">alternative.me · 10% weight</div><div class="card-name">Fear &amp; Greed Index</div></div><div class="badge b-loading" id="badge-fg">LOADING</div></div>
+    <div class="card-score" id="score-fg">Signal score: —</div>
+    <div class="card-val loading" id="val-fg"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-fg">Fetching...</div>
+    <div class="card-int" id="int-fg">Crowd psychology — extremes are contrarian signals</div>
+  </div>
+  <div class="card loading" id="card-dom">
+    <div class="card-hdr"><div><div class="card-src">alternative.me · 5% weight</div><div class="card-name">BTC Dominance</div></div><div class="badge b-loading" id="badge-dom">LOADING</div></div>
+    <div class="card-score" id="score-dom">Signal score: —</div>
+    <div class="card-val loading" id="val-dom"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-dom">Fetching...</div>
+    <div class="card-int" id="int-dom">Rising dom = risk-off. Falling = altcoin season.</div>
+  </div>
+  <div class="card loading" id="card-ratio">
+    <div class="card-hdr"><div><div class="card-src">Binance · 5% weight</div><div class="card-name">ETH/BTC Ratio</div></div><div class="badge b-loading" id="badge-ratio">LOADING</div></div>
+    <div class="card-score" id="score-ratio">Signal score: —</div>
+    <div class="card-val loading" id="val-ratio"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-ratio">Risk appetite indicator</div>
+    <div class="card-int" id="int-ratio">Rising = risk-on. Falling = risk-off.</div>
+  </div>
 </div>
-<div class="card loading" id="card-ratio">
-<div class="card-hdr"><div><div class="card-src">Binance · 5% weight</div><div class="card-name">ETH/BTC Ratio</div></div><div class="badge b-loading" id="badge-ratio">LOADING</div></div>
-<div class="card-score" id="score-ratio">Signal score: —</div>
-<div class="card-val loading" id="val-ratio"><span class="spinner">⟳</span></div>
-<div class="card-sub" id="sub-ratio">Risk appetite indicator</div>
-<div class="card-int" id="int-ratio">Rising = risk-on. Falling = risk-off.</div>
-</div>
-<div class="card manual">
-<div class="card-hdr"><div><div class="card-src">Google · 5% weight</div><div class="card-name">Google Trends</div></div><div class="badge b-manual">MANUAL</div></div>
-<div class="card-score">Check manually</div>
-<div class="card-val manual">→ Google Trends</div>
-<div class="card-sub">No public API</div>
-<div class="card-int"><strong>Bullish:</strong> Low search interest. <strong>Bearish:</strong> Parabolic spike = retail FOMO top. <a href="https://trends.google.com/trends/explore?q=bitcoin" target="_blank">Check ↗</a></div>
-</div>
-</div>
+
 <!-- CHECKLIST -->
 <div class="cl">
-<div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:14px">Perp Trade Checklist</div>
-<table>
-<thead><tr><th>Check</th><th>Where</th><th>What you need</th></tr></thead>
-<tbody>
-<tr><td>Composite score</td><td>Above ↑</td><td>Above 60 to open longs. Below 40 = no longs.</td></tr>
-<tr><td>Funding rate</td><td>Above ↑ (live)</td><td>Below 0.05%. Negative = best long entry.</td></tr>
-<tr><td>Open interest</td><td>Coinglass</td><td>Rising OI + rising price = confirmed trend.</td></tr>
-<tr><td>RSI (4H)</td><td>TradingView</td><td>Below 40 = oversold. Above 70 = avoid longs.</td></tr>
-<tr><td>Max leverage</td><td>Your exchange</td><td>2–3x max. Isolated margin only.</td></tr>
-<tr><td>Stop-loss</td><td>Your exchange</td><td>Set before entry. 8–12% below. Non-negotiable.</td></tr>
-<tr><td>Position size</td><td>Your plan</td><td>Risk 1–2% of capital per trade ($100–200 on $10k).</td></tr>
-</tbody>
-</table>
+  <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Perp Trade Checklist</div>
+  <table>
+    <thead><tr><th>Check</th><th>Where</th><th>What you need</th></tr></thead>
+    <tbody>
+      <tr><td>Composite score</td><td>Above ↑</td><td>Above 60 to open longs. Below 40 = no longs.</td></tr>
+      <tr><td>Confidence</td><td>Above ↑</td><td>High confidence only for full size. Medium = half size.</td></tr>
+      <tr><td>Funding rate</td><td>Above ↑ (live)</td><td>Below 0.05%. Negative = best long entry.</td></tr>
+      <tr><td>Open Interest</td><td>Above ↑ (live)</td><td>Rising OI + rising price = confirmed trend.</td></tr>
+      <tr><td>RSI (4H)</td><td>TradingView</td><td>Below 40 = oversold. Above 70 = avoid longs.</td></tr>
+      <tr><td>Position size</td><td>Calculator ↑</td><td>Use the calculator. Score+confidence adjusts size auto.</td></tr>
+      <tr><td>Stop-loss</td><td>Your exchange</td><td>Set before entry. 8–12% below. Non-negotiable.</td></tr>
+    </tbody>
+  </table>
 </div>
+
 <!-- LINKS -->
 <div class="links">
-<div class="links-lbl">Quick links</div>
-<a class="lnk" href="https://www.coinglass.com/FundingRate" target="_blank">Funding rates</a>
-<a class="lnk" href="https://www.coinglass.com/OpenInterest" target="_blank">Open interest</a>
-<a class="lnk" href="https://farside.co.uk/bitcoin-etf-flow-all-data-table/" target="_blank">ETF flows</a>
-<a class="lnk" href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Fear &amp; Greed</a>
-<a class="lnk" href="https://www.tradingview.com/chart/?symbol=BTCUSDT" target="_blank">BTC chart</a>
-<a class="lnk" href="https://www.tradingview.com/chart/?symbol=ETHUSDT" target="_blank">ETH chart</a>
-<a class="lnk" href="https://trends.google.com/trends/explore?q=bitcoin" target="_blank">Google Trends</a>
-<a class="lnk" href="https://cryptoquant.com/" target="_blank">CryptoQuant</a>
-<a class="lnk" href="https://studio.glassnode.com" target="_blank">Glassnode</a>
+  <div class="links-lbl">Quick links · Shortcuts: R=refresh, C=compare, 1-5=switch asset</div>
+  <a class="lnk" href="https://www.coinglass.com/FundingRate" target="_blank">Funding rates</a>
+  <a class="lnk" href="https://www.coinglass.com/OpenInterest" target="_blank">Open interest</a>
+  <a class="lnk" href="https://farside.co.uk/bitcoin-etf-flow-all-data-table/" target="_blank">ETF flows</a>
+  <a class="lnk" href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Fear &amp; Greed</a>
+  <a class="lnk" href="https://www.tradingview.com/chart/?symbol=BTCUSDT" target="_blank">BTC chart</a>
+  <a class="lnk" href="https://www.tradingview.com/chart/?symbol=ETHUSDT" target="_blank">ETH chart</a>
+  <a class="lnk" href="https://cryptoquant.com/" target="_blank">CryptoQuant</a>
+  <a class="lnk" href="https://studio.glassnode.com" target="_blank">Glassnode</a>
 </div>
+
 </main>
+
 <script>
-// ── v3.3 API Strategy ────────────────────────────────
-//
-// Binance.com blocks requests from browser/proxy IPs (451/403).
-// Solution: multi-source waterfall — each source tried in order.
-//
-// SPOT DATA waterfall:
-//   1. api.binance.us   — US-licensed Binance, allows browser requests
-//   2. api1.binance.com — alternate Binance cluster (sometimes works)
-//   3. data.binance.com — Binance CDN mirror with relaxed CORS
-//   4. corsproxy.io wrapping api.binance.us
-//
-// KLINES waterfall (same sources, different endpoint)
-//
-// FUNDING RATE waterfall:
-//   1. Bybit public API — proper CORS, no geo-block, same perp rate
-//   2. OKX public API  — alternative perp funding
-//   3. Binance fapi via proxy
+// ═══════════════════════════════════════════════════
+// v4.1 — Bug fixes + enhancements
+// ═══════════════════════════════════════════════════
 
+// ── Asset config ──────────────────────────────────
+const ASSETS = {
+  BTCUSDT: { name:'BTC', base:'BTC', bybit:'BTCUSDT' },
+  ETHUSDT: { name:'ETH', base:'ETH', bybit:'ETHUSDT' },
+  SOLUSDT: { name:'SOL', base:'SOL', bybit:'SOLUSDT' },
+  BNBUSDT: { name:'BNB', base:'BNB', bybit:'BNBUSDT' },
+  XRPUSDT: { name:'XRP', base:'XRP', bybit:'XRPUSDT' },
+};
+let currentAsset = 'BTCUSDT';
+let compareMode = false;
+let autoRefreshInterval = null;
+let switchDebounce = null;
+const assetCache = {};
+
+// ── API layer ──────────────────────────────────────
 function setBadge(label, state) {
-  // state: 'ok' | 'warn' | 'err'
-  const badge = document.getElementById('proxy-status');
-  if (!badge) return;
-  badge.textContent = label;
-  badge.className = 'proxy-badge ' + (state==='ok'?'proxy-ok':state==='warn'?'proxy-warn':'proxy-err');
+  const b = document.getElementById('api-badge');
+  if (!b) return;
+  b.textContent = label;
+  b.className = 'api-badge ' + (state==='ok'?'api-ok':state==='warn'?'api-warn':'api-err');
 }
 
-// Try a URL, return parsed JSON or throw
-async function tryFetch(url, timeoutMs=10000) {
-  const r = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+async function tryFetch(url, ms=10000) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(ms) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const text = await r.text();
-  if (!text || text[0]==='{' && text.includes('<!DOCTYPE')) throw new Error('got HTML not JSON');
-  return JSON.parse(text);
+  const t = await r.text();
+  return JSON.parse(t);
 }
 
-// Try a list of URL builders in order; return first success
 async function firstSuccess(builders, label) {
-  for (const build of builders) {
-    try {
-      const url = build();
-      const data = await tryFetch(url);
-      console.log(`[api] OK: ${url.slice(0,60)}`);
-      return data;
-    } catch(e) {
-      console.warn(`[api] Failed: ${build().slice(0,60)} —`, e.message);
-    }
+  for (const b of builders) {
+    try { return await tryFetch(b()); }
+    catch(e) { console.warn(`[api] ${label}: ${b().slice(0,55)} — ${e.message}`); }
   }
-  throw new Error(`All sources failed for: ${label}`);
+  throw new Error(`All sources failed: ${label}`);
 }
 
-// ── Source definitions ─────────────────────────────
 function spotSources(path) {
-  const enc = encodeURIComponent;
+  const e = encodeURIComponent;
+  const base = 'https://api.binance.com/api/v3'; // FIX: Use .com instead of .us
   return [
-    () => `https://api.binance.us/api/v3${path}`,
-    () => `https://data.binance.com/api/v3${path}`,
+    () => `${base}${path}`,
     () => `https://api1.binance.com/api/v3${path}`,
-    () => `https://corsproxy.io/?url=${enc('https://api.binance.us/api/v3'+path)}`,
-    () => `https://api.allorigins.win/raw?url=${enc('https://api.binance.us/api/v3'+path)}`,
-  ];
-}
-
-function futureSources(path) {
-  const enc = encodeURIComponent;
-  return [
-    () => `https://corsproxy.io/?url=${enc('https://fapi.binance.com'+path)}`,
-    () => `https://api.allorigins.win/raw?url=${enc('https://fapi.binance.com'+path)}`,
+    () => `https://data.binance.com/api/v3${path}`,
+    () => `https://corsproxy.io/?url=${e(base+path)}`,
+    () => `https://api.allorigins.win/raw?url=${e(base+path)}`,
   ];
 }
 
@@ -390,78 +511,29 @@ async function fetchSpot(path) {
   return firstSuccess(spotSources(path), path);
 }
 
-async function fetchFundingRate() {
-  // 1. Bybit — most reliable CORS, same perp concept
-  try {
-    const d = await tryFetch('https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1');
-    if (d?.result?.list?.[0]) return { rate: parseFloat(d.result.list[0].fundingRate), source: 'Bybit' };
-  } catch(e) { console.warn('[funding] Bybit:', e.message); }
+// ── Math helpers ──────────────────────────────────
+const el = id => document.getElementById(id);
+const fmtP = n => n >= 1 ? '$'+Math.round(n).toLocaleString() : '$'+parseFloat(n).toFixed(4);
+const fmtPct = (n,d=1) => (n>=0?'+':'')+n.toFixed(d)+'%';
+const fmtVol = n => n>=1e9?'$'+(n/1e9).toFixed(1)+'B':n>=1e6?'$'+(n/1e6).toFixed(0)+'M':'$'+n.toLocaleString();
 
-  // 2. OKX — another well-CORS'd exchange
-  try {
-    const d = await tryFetch('https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USD-SWAP');
-    if (d?.data?.[0]) return { rate: parseFloat(d.data[0].fundingRate), source: 'OKX' };
-  } catch(e) { console.warn('[funding] OKX:', e.message); }
-
-  // 3. Binance fapi via proxy
-  try {
-    const sources = futureSources('/fapi/v1/premiumIndex?symbol=BTCUSDT');
-    const d = await firstSuccess(sources, 'fapi fundingRate');
-    if (d?.lastFundingRate !== undefined) return { rate: parseFloat(d.lastFundingRate), source: 'Binance' };
-  } catch(e) { console.warn('[funding] Binance fapi:', e.message); }
-
-  return null; // soft fail — dashboard shows N/A
+function sCol(s) {
+  if(s>=60) return 'var(--green)';
+  if(s>=40) return 'var(--orange)';
+  return 'var(--red)';
 }
 
-setBadge('CONNECTING', 'warn');
-
-// ── State ──────────────────────────────────────────
-const cats={pm:null,ms:null,se:null,tr:null};
-const wts={pm:.25,ms:.25,se:.25,tr:.25};
-let myChart=null;
-let cd={labels:[],composite:[],fg:[],rsi:[]};
-
-// ── Helpers ────────────────────────────────────────
-const el=id=>document.getElementById(id);
-const fmtP=n=>'$'+Math.round(n).toLocaleString();
-const fmtPct=(n,d=1)=>(n>=0?'+':'')+n.toFixed(d)+'%';
-const fmtVol=n=>n>=1e9?'$'+(n/1e9).toFixed(1)+'B':n>=1e6?'$'+(n/1e6).toFixed(0)+'M':'$'+n.toLocaleString();
-
-function sCol(s){
-  if(s>=70)return'var(--green)';
-  if(s>=55)return'var(--green)';
-  if(s>=40)return'var(--orange)';
-  if(s>=25)return'var(--orange)';
-  return'var(--red)';
-}
-
-function setCard(id,{sig,val,sub,interp,score}){
-  const card=el('card-'+id),badge=el('badge-'+id);
-  const valEl=el('val-'+id),subEl=el('sub-'+id);
-  const intEl=el('int-'+id),scEl=el('score-'+id);
-  if(!card)return;
-  card.className='card '+sig;
-  badge.className='badge b-'+sig;
-  badge.textContent=sig.toUpperCase();
-  valEl.className='card-val '+sig;
-  valEl.textContent=val;
-  if(sub&&subEl)subEl.textContent=sub;
-  if(interp&&intEl)intEl.innerHTML=interp;
-  if(score!==undefined&&scEl)scEl.textContent='Signal score: '+(score>0?'+':'')+score;
-}
-
-// ── Math ──────────────────────────────────────────
-function calcEMA(arr,p){
-  const k=2/(p+1);let e=arr[0];
-  for(let i=1;i<arr.length;i++)e=arr[i]*k+e*(1-k);
+function calcEMA(arr, p) {
+  const k=2/(p+1); let e=arr[0];
+  for(let i=1;i<arr.length;i++) e=arr[i]*k+e*(1-k);
   return e;
 }
 
-function calcRSI(closes,p=14){
-  if(closes.length<p+1)return null;
+function calcRSI(closes, p=14) {
+  if(closes.length<p+1) return null;
   let g=0,l=0;
   for(let i=1;i<=p;i++){const d=closes[i]-closes[i-1];d>0?g+=d:l-=d;}
-  let ag=g/p,al=l/p;
+  let ag=g/p, al=l/p;
   for(let i=p+1;i<closes.length;i++){
     const d=closes[i]-closes[i-1];
     ag=(ag*(p-1)+Math.max(d,0))/p;
@@ -470,22 +542,60 @@ function calcRSI(closes,p=14){
   return al===0?100:100-(100/(1+ag/al));
 }
 
+// FIX: Better RSI normalization
 function normRSI(r){
-  if(r<30)return 90;if(r<40)return 65;if(r<50)return 50;
-  if(r<60)return 45;if(r<70)return 35;if(r<80)return 20;return 10;
+  if(r<25)return 90;
+  if(r<35)return 75;
+  if(r<45)return 60;
+  if(r<55)return 50;
+  if(r<65)return 45;
+  if(r<75)return 30;
+  return 15;
 }
 
-function normFG(f){
-  if(f<=20)return 90;if(f<=35)return 70;if(f<=50)return 55;
-  if(f<=65)return 40;if(f<=80)return 25;return 10;
+function normFG(f){if(f<=20)return 90;if(f<=35)return 70;if(f<=50)return 55;if(f<=65)return 40;if(f<=80)return 25;return 10;}
+
+// ── Confidence scoring ────────────────────────────
+function calcConfidence(cats) {
+  const vals = Object.values(cats).filter(v=>v!==null);
+  if (vals.length < 3) return { level:'LOW', label:'Low', mult:0.4, cls:'conf-low' };
+  
+  const bullish = vals.filter(v=>v>=60).length;
+  const bearish = vals.filter(v=>v<40).length;
+  const neutral = vals.length - bullish - bearish;
+  const total = vals.length;
+  
+  const agreement = Math.max(bullish, bearish) / total;
+  const neutralPenalty = neutral / total > 0.5 ? 0.9 : 1.0; // FIX: Add neutral penalty
+  
+  if (agreement >= 0.75) return { level:'HIGH', label:'High', mult:1.0*neutralPenalty, cls:'conf-high' };
+  if (agreement >= 0.5) return { level:'MED', label:'Medium', mult:0.7*neutralPenalty, cls:'conf-med' };
+  return { level:'LOW', label:'Low', mult:0.5, cls:'conf-low' };
+}
+
+// ── Card helper ───────────────────────────────────
+function setCard(id, {sig,val,sub,interp,score}) {
+  const card=el('card-'+id), badge=el('badge-'+id);
+  const valEl=el('val-'+id), subEl=el('sub-'+id);
+  const intEl=el('int-'+id), scEl=el('score-'+id);
+  if(!card) return;
+  card.className='card '+sig;
+  badge.className='badge b-'+sig; badge.textContent=sig.toUpperCase();
+  valEl.className='card-val '+sig; valEl.textContent=val;
+  if(sub&&subEl) subEl.textContent=sub;
+  if(interp&&intEl) intEl.innerHTML=interp;
+  if(score!==undefined&&scEl) scEl.textContent='Signal score: '+(score>0?'+':'')+score;
 }
 
 // ── Chart ─────────────────────────────────────────
+let myChart=null;
+let cd={labels:[],composite:[],fg:[],rsi:[]};
+
 function initChart(){
   const ctx=el('chart').getContext('2d');
   const zones={id:'zones',beforeDraw(c){
     const{ctx,chartArea:{top,bottom,left,right},scales:{y}}=c;
-    if(!y)return;ctx.save();
+    if(!y)return; ctx.save();
     const y60=y.getPixelForValue(60),y40=y.getPixelForValue(40);
     ctx.fillStyle='rgba(184,255,69,.08)';ctx.fillRect(left,top,right-left,y60-top);
     ctx.fillStyle='rgba(255,181,69,.06)';ctx.fillRect(left,y60,right-left,y40-y60);
@@ -505,19 +615,25 @@ function initChart(){
       plugins:{legend:{display:false},tooltip:{
         backgroundColor:'#1e1e1e',borderColor:'rgba(255,255,255,.15)',borderWidth:1,
         titleColor:'#aaa',bodyColor:'#fff',padding:10,
-        titleFont:{family:'IBM Plex Mono',size:12},bodyFont:{family:'IBM Plex Mono',size:12},
+        titleFont:{family:'IBM Plex Mono',size:11},bodyFont:{family:'IBM Plex Mono',size:11},
         callbacks:{title:i=>i[0].label,label:i=>` ${i.dataset.label}: ${Math.round(i.raw)}`}
       }},
       scales:{
-        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#cccccc',font:{family:'IBM Plex Mono',size:12},maxTicksLimit:8},border:{color:'rgba(255,255,255,.1)'}},
-        y:{min:0,max:100,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#cccccc',font:{family:'IBM Plex Mono',size:12},stepSize:20},border:{color:'rgba(255,255,255,.1)'}}
+        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#888',font:{family:'IBM Plex Mono',size:11},maxTicksLimit:8},border:{color:'rgba(255,255,255,.1)'}},
+        y:{min:0,max:100,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#888',font:{family:'IBM Plex Mono',size:11},stepSize:20},border:{color:'rgba(255,255,255,.1)'}}
       }
     }
   });
 }
 
+// FIX: Pad arrays to same length
 function updChart(){
   if(!myChart||!cd.labels.length)return;
+  const len = cd.labels.length;
+  while (cd.composite.length < len) cd.composite.push(null);
+  while (cd.fg.length < len) cd.fg.push(null);
+  while (cd.rsi.length < len) cd.rsi.push(null);
+  
   myChart.data.labels=cd.labels;
   myChart.data.datasets[0].data=cd.composite;
   myChart.data.datasets[1].data=cd.fg;
@@ -527,13 +643,78 @@ function updChart(){
   el('chart-sub').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 }
 
-// ── Composite ─────────────────────────────────────
+// ── Position calculator ───────────────────────────
+let calcVisible=false;
+function toggleCalc(){
+  calcVisible=!calcVisible;
+  el('calc-body').style.display=calcVisible?'block':'none';
+  document.querySelector('.calc-toggle').textContent=calcVisible?'▴ HIDE':'▾ SHOW';
+  if(calcVisible) calcPosition();
+}
+
+// FIX: Add comprehensive validation
+function calcPosition(){
+  const account=parseFloat(el('c-account').value)||0;
+  const riskPct=parseFloat(el('c-risk').value)||1.5;
+  const entry=parseFloat(el('c-entry').value)||0;
+  const stop=parseFloat(el('c-stop').value)||0;
+  const warn=el('calc-warn');
+
+  // Validation
+  if(account<0||riskPct<0||entry<0||stop<0){
+    warn.style.display='block';warn.textContent='⚠ All values must be positive.';return;
+  }
+  if(!account||!entry||!stop){
+    el('cr-size').textContent='—';el('cr-coins').textContent='fill all fields';
+    el('cr-maxrisk').textContent='—';el('cr-final').textContent='—';
+    el('cr-adj').textContent='—';warn.style.display='none';return;
+  }
+  if(stop>=entry){warn.style.display='block';warn.textContent='⚠ Stop loss must be below entry price.';return;}
+  if(riskPct>5){warn.style.display='block';warn.textContent='⚠ Risk >5% is extremely aggressive. Max recommended: 2%.';}
+  
+  const stopDist=((entry-stop)/entry)*100;
+  if(stopDist<3){warn.style.display='block';warn.textContent='⚠ Stop <3% from entry. Too tight — noise will stop you out.';return;}
+  if(stopDist>20){warn.style.display='block';warn.textContent='⚠ Stop >20% away. Very wide — confirm intentional.';}
+
+  const cached=assetCache[currentAsset];
+  const score=cached?.score||50;
+  const conf=cached?.confidence||{mult:0.7};
+
+  const maxRisk=account*(riskPct/100);
+  const stopDistAbs=entry-stop;
+  const baseSize=(maxRisk/stopDistAbs)*entry;
+
+  const scoreMult=score>=75?1.0:score>=60?0.85:score>=50?0.7:score>=40?0.5:0.25;
+  const totalMult=scoreMult*conf.mult;
+  const adjSize=baseSize*totalMult;
+  const coins=adjSize/entry;
+
+  el('cr-size').textContent='$'+Math.round(baseSize).toLocaleString();
+  el('cr-coins').textContent=coins.toFixed(4)+' '+ASSETS[currentAsset].base;
+  el('cr-maxrisk').textContent='$'+Math.round(maxRisk).toLocaleString();
+  el('cr-riskpct').textContent=riskPct+'% of account';
+  el('cr-adj').textContent=(totalMult*100).toFixed(0)+'%';
+  el('cr-adjlbl').textContent=`score×conf (${(scoreMult*100).toFixed(0)}%×${(conf.mult*100).toFixed(0)}%)`;
+  el('cr-final').textContent='$'+Math.round(adjSize).toLocaleString();
+  el('cr-finalcoins').textContent=(adjSize/entry).toFixed(4)+' '+ASSETS[currentAsset].base;
+
+  if(adjSize/account>0.3&&!warn.textContent.includes('Risk')){
+    warn.style.display='block';
+    warn.textContent='⚠ Position >30% of account. Reduce risk % or wait for higher score.';
+  }
+}
+
+// ── Composite + recommendation ─────────────────────
+const cats={pm:null,ms:null,se:null,tr:null};
+const wts={pm:.25,ms:.25,se:.25,tr:.25};
+
 function updComposite(){
   const active=Object.entries(cats).filter(([,v])=>v!==null);
   if(!active.length)return;
   let wSum=0,wTot=0;
   for(const[k,v]of active){wSum+=v*wts[k];wTot+=wts[k];}
   const comp=Math.round(wSum/wTot);
+  const conf=calcConfidence(cats);
 
   [['pm','c-pm','f-pm'],['ms','c-ms','f-ms'],['se','c-se','f-se'],['tr','c-tr','f-tr']].forEach(([k,nId,fId])=>{
     if(cats[k]!==null){
@@ -544,16 +725,19 @@ function updComposite(){
 
   el('score-num').textContent=comp;
   el('score-num').style.color=sCol(comp);
+  el('conf-badge').textContent=conf.label;
+  el('conf-badge').className='conf-badge '+conf.cls;
 
-  let sig,tagCls,recCls,title,detail,alloc,allocSub,conf;
-  if(comp>=75){sig='STRONG BUY';tagCls='tag-buy';recCls='buy';title='Strong signals — aggressive accumulation';detail='<strong>Spot:</strong> Deploy 80–100% of allocation. Scale in over 2–3 buys. <strong>Perps:</strong> 2–3x long if funding below 0.05%. Set stop at -10%.';alloc='80–100%';allocSub='Full allocation';conf=5;}
-  else if(comp>=60){sig='BUY';tagCls='tag-buy';recCls='buy';title='Positive signals — moderate accumulation';detail='<strong>Spot:</strong> Deploy 50–80%. DCA in. <strong>Perps:</strong> 2x long if funding is neutral. Stop before entry.';alloc='50–80%';allocSub='Moderate allocation';conf=4;}
-  else if(comp>=50){sig='WEAK BUY';tagCls='tag-buy';recCls='buy';title='Mild signals — light accumulation only';detail='<strong>Spot:</strong> 25–50% only. Small starter position. <strong>Perps:</strong> Avoid unless funding negative AND RSI below 40.';alloc='25–50%';allocSub='Light allocation';conf=3;}
-  else if(comp>=40){sig='HOLD';tagCls='tag-hold';recCls='hold';title='Mixed signals — hold current positions';detail='Signals ambiguous. Hold existing spot. Do not open new perp positions. Wait for composite above 60 or below 40.';alloc='Hold';allocSub='Current positions';conf=2;}
-  else if(comp>=25){sig='WEAK SELL';tagCls='tag-sell';recCls='sell';title='Signals weakening — reduce exposure';detail='<strong>Spot:</strong> Trim 20–30% of positions. <strong>Perps:</strong> Close longs. No new longs.';alloc='50–75%';allocSub='Reduce to this level';conf=3;}
-  else{sig='SELL';tagCls='tag-sell';recCls='sell';title='Bearish signals — significant reduction';detail='<strong>Spot:</strong> Reduce to 20–50%. Move to stablecoins. <strong>Perps:</strong> Close all longs immediately.';alloc='0–50%';allocSub='Reduce urgently';conf=4;}
+  let sig,tagCls,recCls,title,detail,alloc,allocSub,strength;
+  if(comp>=75){sig='STRONG BUY';tagCls='tag-buy';recCls='buy';title='Strong signals — aggressive accumulation';detail='<strong>Spot:</strong> Deploy 80–100% of allocation. <strong>Perps:</strong> 2–3x long if funding below 0.05%. Set stop at -10%.';alloc='80–100%';allocSub='Full allocation';strength=5;}
+  else if(comp>=60){sig='BUY';tagCls='tag-buy';recCls='buy';title='Positive signals — moderate accumulation';detail='<strong>Spot:</strong> Deploy 50–80%. DCA in. <strong>Perps:</strong> 2x long if funding neutral. Stop -10%.';alloc='50–80%';allocSub='Moderate allocation';strength=4;}
+  else if(comp>=50){sig='WEAK BUY';tagCls='tag-buy';recCls='buy';title='Mild signals — light accumulation only';detail='<strong>Spot:</strong> 25–50% only. <strong>Perps:</strong> Avoid unless funding negative AND RSI below 40.';alloc='25–50%';allocSub='Light allocation';strength=3;}
+  else if(comp>=40){sig='HOLD';tagCls='tag-hold';recCls='hold';title='Mixed signals — hold current positions';detail='Signals ambiguous. Hold existing spot. Do not open new perp positions. Wait for composite above 60 or below 40.';alloc='Hold';allocSub='Current positions';strength=2;}
+  else if(comp>=25){sig='WEAK SELL';tagCls='tag-sell';recCls='sell';title='Signals weakening — reduce exposure';detail='<strong>Spot:</strong> Trim 20–30%. <strong>Perps:</strong> Close longs. No new longs.';alloc='50–75%';allocSub='Reduce to level';strength=3;}
+  else{sig='SELL';tagCls='tag-sell';recCls='sell';title='Bearish — significant reduction';detail='<strong>Spot:</strong> Reduce to 20–50%. Move to stablecoins. <strong>Perps:</strong> Close all longs.';alloc='0–50%';allocSub='Reduce urgently';strength=4;}
 
-  if(active.length<3)conf=Math.min(conf,2);
+  if(conf.level==='LOW'){detail+=' <strong style="color:var(--orange)">⚠ Low confidence — signals disagree. Half-size only.</strong>';}
+  if(conf.level==='MED'){detail+=' <em style="color:var(--muted)">Medium confidence — reduce position size.</em>';}
 
   el('rec-tag').textContent=sig;el('rec-tag').className='rec-tag '+tagCls;
   el('rec').className='rec '+recCls;
@@ -564,12 +748,15 @@ function updComposite(){
 
   const votes={buy:0,hold:0,sell:0};
   for(const[,v]of active){if(v>=60)votes.buy++;else if(v>=40)votes.hold++;else votes.sell++;}
-  el('v-buy').textContent=votes.buy+'/';
-  el('v-hold').textContent=votes.hold+'/';
-  el('v-sell').textContent=votes.sell+'/';
+  el('v-buy').textContent=votes.buy;el('v-hold').textContent=votes.hold;el('v-sell').textContent=votes.sell;
 
   const pc=comp>=60?'g':comp>=40?'o':'r';
-  el('pips').querySelectorAll('.pip').forEach((p,i)=>p.className='pip'+(i<conf?' '+pc:''));
+  el('pips').querySelectorAll('.pip').forEach((p,i)=>p.className='pip'+(i<strength?' '+pc:''));
+
+  const cached=assetCache[currentAsset]||{};
+  assetCache[currentAsset]={...cached, score:comp, confidence:conf, sig:recCls, label:sig, lastFetch:Date.now()};
+  updPill(currentAsset, comp, recCls);
+  if(calcVisible) calcPosition();
 
   const today=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
   const last=cd.labels[cd.labels.length-1];
@@ -578,200 +765,393 @@ function updComposite(){
   updChart();
 }
 
+function updPill(sym, score, sigClass){
+  const pill=el('pill-'+sym);
+  if(!pill)return;
+  pill.textContent=score;
+  pill.style.background=sigClass==='buy'?'rgba(184,255,69,.25)':sigClass==='sell'?'rgba(255,85,85,.25)':'rgba(255,181,69,.2)';
+  pill.style.color=sigClass==='buy'?'var(--green)':sigClass==='sell'?'var(--red)':'var(--orange)';
+}
+
+// FIX: Add debouncing
+function switchAsset(sym, btn){
+  clearTimeout(switchDebounce);
+  switchDebounce = setTimeout(() => {
+    if(compareMode) toggleCompare();
+    currentAsset=sym;
+    document.querySelectorAll('.asset-tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    Object.keys(cats).forEach(k=>cats[k]=null);
+    cd={labels:[],composite:[],fg:[],rsi:[]};
+    resetCards();
+    
+    // Check cache (1 min freshness)
+    const cached = assetCache[sym];
+    if(cached?.lastFetch && Date.now() - cached.lastFetch < 60000){
+      console.log('[cache] Using cached data for', sym);
+      // Still reload but faster UX
+    }
+    loadAll();
+  }, 150);
+}
+
+function resetCards(){
+  ['rsi','macd','ma','200','fund','oi','vol','fg','dom','ratio'].forEach(id=>{
+    const c=el('card-'+id); if(!c)return;
+    c.className='card loading';
+    const b=el('badge-'+id); if(b){b.className='badge b-loading';b.textContent='LOADING';}
+    const v=el('val-'+id); if(v){v.className='card-val loading';v.innerHTML='<span class="spinner">⟳</span>';}
+    const s=el('score-'+id); if(s) s.textContent='Signal score: —';
+  });
+  el('rec').className='rec loading';
+  el('score-num').textContent='—';
+  el('rec-tag').textContent='LOADING';el('rec-tag').className='rec-tag tag-loading';
+  el('rec-title').textContent='Fetching live signals...';
+  el('rec-detail').textContent='';
+  el('alloc').textContent='—';
+  el('conf-badge').textContent='—';
+}
+
+function toggleCompare(){
+  compareMode=!compareMode;
+  el('compare-view').style.display=compareMode?'grid':'none';
+  el('main-content').style.display=compareMode?'none':'grid';
+  document.getElementById('compare-btn').classList.toggle('active',compareMode);
+  if(compareMode) renderCompare();
+}
+
+function renderCompare(){
+  const cv=el('compare-view');
+  cv.innerHTML='';
+  const sorted=Object.entries(assetCache).sort((a,b)=>(b[1].score||0)-(a[1].score||0));
+  const bestSym=sorted[0]?.[0];
+  for(const [sym,data] of sorted){
+    const cfg=ASSETS[sym];
+    const isBest=sym===bestSym&&data.score;
+    const scoreCol=sCol(data.score||50);
+    const div=document.createElement('div');
+    div.className='cmp-card'+(isBest?' best':'');
+    div.innerHTML=`
+      <div class="cmp-sym">${cfg.name} / USDT</div>
+      <div class="cmp-score" style="color:${scoreCol}">${data.score||'—'}</div>
+      <div class="cmp-sig" style="color:${scoreCol}">${data.label||'—'}</div>
+      <div class="cmp-conf">Confidence: ${data.confidence?.label||'—'}</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px">${data.price?fmtP(data.price):''}</div>
+      ${isBest?'<div class="cmp-best">★ BEST SETUP</div>':''}
+    `;
+    div.onclick=()=>{
+      toggleCompare();
+      const tab=document.querySelector(`[data-sym="${sym}"]`);
+      if(tab) switchAsset(sym,tab);
+    };
+    cv.appendChild(div);
+  }
+  for(const sym of Object.keys(ASSETS)){
+    if(!assetCache[sym]) loadAssetBackground(sym);
+  }
+}
+
+async function loadAssetBackground(sym){
+  try {
+    const [ticker,klines]=await Promise.all([
+      fetchSpot(`/ticker/24hr?symbol=${sym}`),
+      fetchSpot(`/klines?symbol=${sym}&interval=1d&limit=200`),
+    ]);
+    const price=parseFloat(ticker.lastPrice);
+    const closes=klines.map(d=>parseFloat(d[4]));
+    const volumes=klines.map(d=>parseFloat(d[5]));
+    const L=closes.length;
+    const rv=calcRSI(closes,14)||50;
+    const rn=normRSI(rv);
+    const ma7=closes.slice(-7).reduce((a,b)=>a+b,0)/7;
+    const ma25=closes.slice(-25).reduce((a,b)=>a+b,0)/25;
+    const ma99=closes.slice(-99).reduce((a,b)=>a+b,0)/Math.min(99,L);
+    const macd=calcEMA(closes.slice(-26),12)-calcEMA(closes.slice(-26),26);
+    const mScore=macd>0?60:25;
+    const eScore=ma7>ma25&&ma25>ma99?80:ma7>ma25?55:ma7<ma25&&ma25<ma99?15:40;
+    const vol7=volumes.slice(-7).reduce((a,b)=>a+b,0)/7;
+    const vol30=volumes.slice(-30).reduce((a,b)=>a+b,0)/30;
+    const vScore=vol7/vol30>1.1?60:vol7/vol30>0.8?50:30;
+    const pm=Math.round(rn*.32+mScore*.28+eScore*.20+eScore*.20);
+    const ms=Math.round(vScore);
+    const tmpCats={pm,ms,se:50,tr:Math.round(eScore*.4+mScore*.35+rn*.25)};
+    const vals=Object.values(tmpCats);
+    const comp=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+    const conf=calcConfidence(tmpCats);
+    const sigCls=comp>=60?'buy':comp>=40?'hold':'sell';
+    const lbl=comp>=75?'STRONG BUY':comp>=60?'BUY':comp>=50?'WEAK BUY':comp>=40?'HOLD':comp>=25?'WEAK SELL':'SELL';
+    assetCache[sym]={score:comp,confidence:conf,sig:sigCls,label:lbl,price,lastFetch:Date.now()};
+    updPill(sym,comp,sigCls);
+    if(compareMode) renderCompare();
+  } catch(e){ console.warn(`[bg load] ${sym}:`, e.message); }
+}
+
 // ── Fetchers ──────────────────────────────────────
 async function fetchFG(){
   try{
-    // alternative.me has CORS headers — no proxy needed
     const r=await fetch('https://api.alternative.me/fng/?limit=30');
     const d=await r.json();
     const entries=d.data.reverse();
-
     cd.labels=entries.map(e=>new Date(e.timestamp*1000).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));
     cd.fg=entries.map(e=>normFG(parseInt(e.value)));
     cd.composite=[...cd.fg];
     cd.rsi=new Array(entries.length).fill(null);
-
     const lat=entries[entries.length-1];
     const fg=parseInt(lat.value),label=lat.value_classification;
     const score=normFG(fg);
-
     let sig,interp;
     if(fg<=20){sig='bullish';interp=`<strong>Extreme Fear (${fg}):</strong> Historically great buy zones. Crowd panic = your edge.`;}
-    else if(fg<=35){sig='bullish';interp=`<strong>Fear (${fg}):</strong> Negative sentiment but not extreme. Good for patient accumulation.`;}
+    else if(fg<=35){sig='bullish';interp=`<strong>Fear (${fg}):</strong> Negative sentiment. Good for patient accumulation.`;}
     else if(fg<=55){sig='neutral';interp=`<strong>Neutral (${fg}):</strong> No strong crowd signal. Trade on technicals.`;}
     else if(fg<=75){sig='neutral';interp=`<strong>Greed (${fg}):</strong> Elevated sentiment. Risk/reward worsening.`;}
     else{sig='bearish';interp=`<strong>Extreme Greed (${fg}):</strong> Near tops historically. Take profits.`;}
-
     setCard('fg',{sig,val:fg.toString(),sub:label+' · Updated daily',interp,score});
-    cats.se=Math.round(score*0.7);
+
+    try{
+      const cgr=await fetch('https://api.coingecko.com/api/v3/global');
+      const cgd=await cgr.json();
+      const dom=cgd.data?.market_cap_percentage?.btc||0;
+      let dSig,dScore,dInterp;
+      if(dom>60){dSig='bullish';dScore=70;dInterp=`<strong>High dominance (${dom.toFixed(1)}%):</strong> BTC leading. Good for BTC, harder for alts.`;}
+      else if(dom>50){dSig='neutral';dScore=55;dInterp=`<strong>Mid dominance (${dom.toFixed(1)}%):</strong> Balanced. Both BTC and alts can move.`;}
+      else{dSig='neutral';dScore=45;dInterp=`<strong>Low dominance (${dom.toFixed(1)}%):</strong> Alt season territory. ETH/SOL setups favoured.`;}
+      setCard('dom',{sig:dSig,val:dom.toFixed(1)+'%',sub:'BTC market dominance',interp:dInterp,score:dScore});
+      cats.se=Math.round(score*0.65+dScore*0.35);
+    } catch(e2){
+      setCard('dom',{sig:'neutral',val:'—',sub:'API unavailable',interp:'Check CoinGecko manually.',score:50});
+      cats.se=Math.round(score*0.7);
+    }
     updComposite();updChart();
   }catch(e){
-    console.error('Fear & Greed fetch failed:',e);
+    console.error('F&G fetch failed:',e);
     setCard('fg',{sig:'neutral',val:'ERR',sub:'API error',interp:'Check alternative.me manually.'});
+    cats.se=50;updComposite();
   }
 }
 
-async function fetchBinance(){
+async function fetchFundingAndOI(){
   try{
-    const [btc24, eth24, klines] = await Promise.all([
-      fetchSpot('/ticker/24hr?symbol=BTCUSDT'),
-      fetchSpot('/ticker/24hr?symbol=ETHUSDT'),
-      fetchSpot('/klines?symbol=BTCUSDT&interval=1d&limit=200'),
-    ]);
-
-    let fundingData = null;
-    try { fundingData = await fetchFundingRate(); } catch(e) { console.warn('[funding]', e.message); }
-
-    setBadge('DIRECT', 'ok');
-
-    // Prices
-    const bp=parseFloat(btc24.lastPrice),bc=parseFloat(btc24.priceChangePercent),bv=parseFloat(btc24.quoteVolume);
-    const ep=parseFloat(eth24.lastPrice),ec=parseFloat(eth24.priceChangePercent);
-
-    el('btc-p').textContent=fmtP(bp);
-    const bcel=el('btc-c');bcel.textContent=fmtPct(bc);bcel.className='pch '+(bc>=0?'up':'dn');
-    el('btc-s').textContent='24h vol: '+fmtVol(bv);
-
-    el('eth-p').textContent=fmtP(ep);
-    const ecel=el('eth-c');ecel.textContent=fmtPct(ec);ecel.className='pch '+(ec>=0?'up':'dn');
-    el('eth-s').textContent='24h change';
-
-    // ETH/BTC ratio
-    const ratio=ep/bp;
-    let rSig,rScore,rInterp;
-    if(ratio>0.065){rSig='bullish';rScore=70;rInterp='<strong>Risk-on:</strong> ETH outperforming BTC. Good backdrop for ETH perps.';}
-    else if(ratio>0.050){rSig='neutral';rScore=50;rInterp='<strong>Neutral:</strong> ETH/BTC mid-range. No strong directional signal.';}
-    else{rSig='bearish';rScore=25;rInterp='<strong>Risk-off:</strong> BTC dominating. Stick to BTC only.';}
-    setCard('ratio',{sig:rSig,val:ratio.toFixed(5),sub:'ETH/BTC live',interp:rInterp,score:rScore});
-    cats.se=cats.se!==null?Math.round((cats.se+rScore)/2):rScore;
-
-    // Funding rate
-    if (fundingData) {
-      const fundRate = fundingData.rate * 100;
+    const d=await tryFetch('https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1');
+    if(d?.result?.list?.[0]){
+      const fundRate=parseFloat(d.result.list[0].fundingRate)*100;
       el('fund-v').textContent=(fundRate>=0?'+':'')+fundRate.toFixed(4)+'%';
       el('fund-v').style.color=fundRate<0?'var(--green)':fundRate<0.05?'var(--orange)':'var(--red)';
-      el('fund-s').textContent=`BTC perp · ${fundingData.source}`;
-
+      el('fund-s').textContent='BTC perp · Bybit';
       let fSig,fScore,fInterp;
-      if(fundRate<-0.01){fSig='bullish';fScore=85;fInterp=`<strong>Negative funding (${fundRate.toFixed(4)}%):</strong> Shorts paying longs. Strong bullish bias. Best long entry context.`;}
-      else if(fundRate<0.01){fSig='bullish';fScore=65;fInterp=`<strong>Neutral funding (${fundRate.toFixed(4)}%):</strong> No crowding. Safe to open longs with other signals confirming.`;}
-      else if(fundRate<0.05){fSig='neutral';fScore=45;fInterp=`<strong>Mild positive (${fundRate.toFixed(4)}%):</strong> Slight long bias. Acceptable but watch for increase.`;}
-      else if(fundRate<0.1){fSig='neutral';fScore=25;fInterp=`<strong>Elevated (${fundRate.toFixed(4)}%):</strong> Longs crowded. Avoid new longs. Reduce leverage.`;}
-      else{fSig='bearish';fScore=10;fInterp=`<strong>Very high (${fundRate.toFixed(4)}%):</strong> Extremely crowded. High squeeze risk. Do not open longs.`;}
-      setCard('fund',{sig:fSig,val:(fundRate>=0?'+':'')+fundRate.toFixed(4)+'%',sub:`BTC perp funding · ${fundingData.source}`,interp:fInterp,score:fScore});
-      cats.ms = cats.ms !== null ? cats.ms : 0; // will be set later
+      if(fundRate<-0.01){fSig='bullish';fScore=85;fInterp=`<strong>Negative funding (${fundRate.toFixed(4)}%):</strong> Shorts paying longs. Best long entry context.`;}
+      else if(fundRate<0.01){fSig='bullish';fScore=65;fInterp=`<strong>Neutral funding (${fundRate.toFixed(4)}%):</strong> No crowding. Safe to open longs.`;}
+      else if(fundRate<0.05){fSig='neutral';fScore=45;fInterp=`<strong>Mild positive (${fundRate.toFixed(4)}%):</strong> Slight long bias. Watch for increase.`;}
+      else if(fundRate<0.1){fSig='neutral';fScore=25;fInterp=`<strong>Elevated (${fundRate.toFixed(4)}%):</strong> Longs crowded. Avoid new longs.`;}
+      else{fSig='bearish';fScore=10;fInterp=`<strong>Very high (${fundRate.toFixed(4)}%):</strong> Extreme crowding. High squeeze risk.`;}
+      setCard('fund',{sig:fSig,val:(fundRate>=0?'+':'')+fundRate.toFixed(4)+'%',sub:'BTC perp funding · Bybit',interp:fInterp,score:fScore});
+      return fScore;
+    }
+  }catch(e){console.warn('[funding] Bybit:',e.message);}
+  setCard('fund',{sig:'neutral',val:'N/A',sub:'Unavailable',interp:'Check <a href="https://www.coinglass.com/FundingRate" target="_blank">Coinglass ↗</a>',score:50});
+  return 50;
+}
+
+async function fetchOI(){
+  try{
+    const sym=ASSETS[currentAsset]?.bybit||'BTCUSDT';
+    const d=await tryFetch(`https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${sym}&intervalTime=1d&limit=7`);
+    if(d?.result?.list?.length>=2){
+      const list=d.result.list;
+      const latestOI=parseFloat(list[0].openInterest);
+      const prevOI=parseFloat(list[list.length-1].openInterest);
+      const oiChange=((latestOI-prevOI)/prevOI)*100;
+      let oiSig,oiScore,oiInterp;
+      if(oiChange>5){
+        oiSig='bullish';oiScore=75;
+        oiInterp=`<strong>OI rising +${oiChange.toFixed(1)}%:</strong> New money entering. Trend confirmation.`;
+      } else if(oiChange>0){
+        oiSig='neutral';oiScore=55;
+        oiInterp=`<strong>OI slightly up (+${oiChange.toFixed(1)}%):</strong> Mild new positioning. Neutral signal.`;
+      } else if(oiChange>-5){
+        oiSig='neutral';oiScore=45;
+        oiInterp=`<strong>OI flat/declining (${oiChange.toFixed(1)}%):</strong> Position unwinding or neutral.`;
+      } else {
+        oiSig='bearish';oiScore=25;
+        oiInterp=`<strong>OI dropping (${oiChange.toFixed(1)}%):</strong> Positions being closed. Weak conviction.`;
+      }
+      const fmt=n=>n>=1e9?'$'+(n/1e9).toFixed(2)+'B':n>=1e6?'$'+(n/1e6).toFixed(0)+'M':'$'+n.toFixed(0);
+      setCard('oi',{sig:oiSig,val:fmt(latestOI),sub:`7d change: ${oiChange>=0?'+':''}${oiChange.toFixed(1)}%`,interp:oiInterp,score:oiScore});
+      return oiScore;
+    }
+  }catch(e){console.warn('[OI] Bybit:',e.message);}
+  setCard('oi',{sig:'neutral',val:'N/A',sub:'OI unavailable',interp:'Check <a href="https://www.coinglass.com/OpenInterest" target="_blank">Coinglass ↗</a>',score:50});
+  return 50;
+}
+
+async function fetchMainData(){
+  try{
+    const sym=currentAsset;
+    const [mainTicker,btcTicker,klines]=await Promise.all([
+      fetchSpot(`/ticker/24hr?symbol=${sym}`),
+      sym==='BTCUSDT'?Promise.resolve(null):fetchSpot('/ticker/24hr?symbol=BTCUSDT'),
+      fetchSpot(`/klines?symbol=${sym}&interval=1d&limit=200`),
+    ]);
+
+    setBadge('DIRECT','ok');
+
+    const ap=parseFloat(mainTicker.lastPrice),ac=parseFloat(mainTicker.priceChangePercent),av=parseFloat(mainTicker.quoteVolume);
+    const assetName=ASSETS[sym].name;
+
+    el('lbl-main-p').textContent=assetName+' / USDT';
+    el('main-p').textContent=fmtP(ap);
+    const acel=el('main-c');acel.textContent=fmtPct(ac);acel.className='pch '+(ac>=0?'up':'dn');
+    el('main-s').textContent='24h vol: '+fmtVol(av);
+    el('lbl-7d').textContent=assetName+' 7-DAY';
+
+    const btcPrice=sym==='BTCUSDT'?ap:parseFloat(btcTicker.lastPrice);
+    const btcChg=sym==='BTCUSDT'?ac:parseFloat(btcTicker.priceChangePercent);
+    el('btc-p').textContent=fmtP(btcPrice);
+    const bcel=el('btc-c');bcel.textContent=fmtPct(btcChg);bcel.className='pch '+(btcChg>=0?'up':'dn');
+    el('btc-s').textContent='24h change';
+
+    const cached=assetCache[sym]||{};
+    assetCache[sym]={...cached,price:ap};
+    if(!el('c-entry').value) el('c-entry').value=ap.toFixed(ap<1?4:0);
+
+    // FIX: Better ETH/BTC ratio handling for all assets
+    if(sym==='ETHUSDT'&&btcPrice){
+      const ratio=ap/btcPrice;
+      let rSig,rScore,rInterp;
+      if(ratio>0.065){rSig='bullish';rScore=70;rInterp='<strong>Risk-on:</strong> ETH outperforming BTC.';}
+      else if(ratio>0.050){rSig='neutral';rScore=50;rInterp='<strong>Neutral:</strong> ETH/BTC mid-range.';}
+      else{rSig='bearish';rScore=25;rInterp='<strong>Risk-off:</strong> BTC dominating.';}
+      setCard('ratio',{sig:rSig,val:ratio.toFixed(5),sub:'ETH/BTC ratio',interp:rInterp,score:rScore});
+    } else if(sym==='BTCUSDT'){
+      setCard('ratio',{sig:'neutral',val:'BTC',sub:'Base asset — no ratio',interp:'BTC is the base asset. Check BTC dominance in sentiment section.',score:50});
     } else {
-      el('fund-v').textContent='N/A';
-      el('fund-s').textContent='Funding rate unavailable';
-      setCard('fund',{sig:'neutral',val:'N/A',sub:'Funding API unavailable',interp:'Check <a href="https://www.coinglass.com/FundingRate" target="_blank">Coinglass ↗</a> manually.',score:50});
+      // For other assets, show generic sentiment proxy
+      setCard('ratio',{sig:'neutral',val:assetName,sub:'Alt performance',interp:`${assetName} vs BTC. Check dominance for risk appetite.`,score:50});
     }
 
-    // OHLC analysis
     const closes=klines.map(d=>parseFloat(d[4]));
     const volumes=klines.map(d=>parseFloat(d[5]));
     const L=closes.length;
 
-    // RSI
     const rv=calcRSI(closes,14);
     const rn=rv?normRSI(rv):50;
     const rv2=rv?Math.round(rv):null;
     cd.rsi=cd.labels.map(()=>rn);
-
     let rsiSig,rsiInterp;
-    if(rv<30){rsiSig='bullish';rsiInterp=`<strong>Oversold (${rv2}):</strong> Strong bounce setup. Best combined with negative funding.`;}
-    else if(rv<45){rsiSig='bullish';rsiInterp=`<strong>Below midline (${rv2}):</strong> Momentum slightly bearish. Good for patient accumulation.`;}
-    else if(rv<58){rsiSig='neutral';rsiInterp=`<strong>Neutral (${rv2}):</strong> No strong RSI signal. Look to MACD and MAs.`;}
-    else if(rv<72){rsiSig='neutral';rsiInterp=`<strong>Elevated (${rv2}):</strong> Momentum strong but overbought risk rising. Tighten stops.`;}
-    else{rsiSig='bearish';rsiInterp=`<strong>Overbought (${rv2}):</strong> High risk for new longs. Wait for RSI to cool below 60.`;}
-    setCard('rsi',{sig:rsiSig,val:rv2?.toString()||'—',sub:'14-day RSI · Binance daily data',interp:rsiInterp,score:rn});
+    if(rv<30){rsiSig='bullish';rsiInterp=`<strong>Oversold (${rv2}):</strong> Strong bounce setup.`;}
+    else if(rv<45){rsiSig='bullish';rsiInterp=`<strong>Below midline (${rv2}):</strong> Good for patient accumulation.`;}
+    else if(rv<58){rsiSig='neutral';rsiInterp=`<strong>Neutral (${rv2}):</strong> No strong RSI signal.`;}
+    else if(rv<72){rsiSig='neutral';rsiInterp=`<strong>Elevated (${rv2}):</strong> Overbought risk rising. Tighten stops.`;}
+    else{rsiSig='bearish';rsiInterp=`<strong>Overbought (${rv2}):</strong> High risk for new longs.`;}
+    setCard('rsi',{sig:rsiSig,val:rv2?.toString()||'—',sub:'14-day RSI · Daily data',interp:rsiInterp,score:rn});
 
-    // MACD
     const macd=calcEMA(closes.slice(-26),12)-calcEMA(closes.slice(-26),26);
     const pmacd=calcEMA(closes.slice(-27,-1),12)-calcEMA(closes.slice(-27,-1),26);
     const cross=macd>0&&pmacd<=0?'bull_cross':macd<0&&pmacd>=0?'bear_cross':macd>0?'above':'below';
-
     let mSig,mScore,mVal,mInterp;
-    if(cross==='bull_cross'){mSig='bullish';mScore=90;mVal='↑ CROSS';mInterp='<strong>Fresh bullish crossover:</strong> MACD crossed above zero. Strong momentum signal.';}
-    else if(cross==='above'){mSig='bullish';mScore=60;mVal='↑ BULL';mInterp=`<strong>MACD positive (${macd.toFixed(0)}):</strong> Uptrend momentum ongoing.`;}
-    else if(cross==='bear_cross'){mSig='bearish';mScore=10;mVal='↓ CROSS';mInterp='<strong>Fresh bearish crossover:</strong> MACD crossed below zero. Strong reversal signal.';}
-    else{mSig='bearish';mScore=25;mVal='↓ BEAR';mInterp=`<strong>MACD negative (${macd.toFixed(0)}):</strong> Downtrend momentum. Wait for crossover before longs.`;}
+    if(cross==='bull_cross'){mSig='bullish';mScore=90;mVal='↑ CROSS';mInterp='<strong>Fresh bullish crossover:</strong> Strong momentum signal.';}
+    else if(cross==='above'){mSig='bullish';mScore=60;mVal='↑ BULL';mInterp=`<strong>MACD positive (${macd.toFixed(0)}):</strong> Uptrend ongoing.`;}
+    else if(cross==='bear_cross'){mSig='bearish';mScore=10;mVal='↓ CROSS';mInterp='<strong>Fresh bearish crossover:</strong> Strong reversal signal.';}
+    else{mSig='bearish';mScore=25;mVal='↓ BEAR';mInterp=`<strong>MACD negative (${macd.toFixed(0)}):</strong> Wait for crossover.`;}
     setCard('macd',{sig:mSig,val:mVal,sub:`MACD: ${macd.toFixed(0)} · ${macd>0?'positive':'negative'}`,interp:mInterp,score:mScore});
 
-    // MAs
     const ma7=closes.slice(-7).reduce((a,b)=>a+b,0)/7;
     const ma25=closes.slice(-25).reduce((a,b)=>a+b,0)/25;
     const ma99=closes.slice(-99).reduce((a,b)=>a+b,0)/Math.min(99,L);
-
     let eSig,eScore,eVal,eInterp;
-    if(ma7>ma25&&ma25>ma99){eSig='bullish';eScore=80;eVal='↑ BULL';eInterp=`<strong>Full bull alignment:</strong> 7d > 25d > 99d. All MAs stacked. Buy dips.`;}
-    else if(ma7>ma25){eSig='bullish';eScore=55;eVal='↑ PARTIAL';eInterp=`<strong>Partial bull:</strong> 7d above 25d but 25d below 99d. Developing uptrend.`;}
-    else if(ma7<ma25&&ma25<ma99){eSig='bearish';eScore=15;eVal='↓ BEAR';eInterp=`<strong>Full bear:</strong> 7d < 25d < 99d. All MAs stacked bearish. No longs.`;}
-    else{eSig='neutral';eScore=40;eVal='↔ MIX';eInterp=`<strong>Mixed:</strong> MAs not aligned. Choppy — reduce size.`;}
-    setCard('ma',{sig:eSig,val:eVal,sub:`7d $${Math.round(ma7).toLocaleString()} · 25d $${Math.round(ma25).toLocaleString()} · 99d $${Math.round(ma99).toLocaleString()}`,interp:eInterp,score:eScore});
+    if(ma7>ma25&&ma25>ma99){eSig='bullish';eScore=80;eVal='↑ BULL';eInterp=`<strong>Full bull:</strong> 7d > 25d > 99d. Buy dips.`;}
+    else if(ma7>ma25){eSig='bullish';eScore=55;eVal='↑ PARTIAL';eInterp=`<strong>Partial bull:</strong> 7d above 25d. Developing uptrend.`;}
+    else if(ma7<ma25&&ma25<ma99){eSig='bearish';eScore=15;eVal='↓ BEAR';eInterp=`<strong>Full bear:</strong> All MAs stacked bearish. No longs.`;}
+    else{eSig='neutral';eScore=40;eVal='↔ MIX';eInterp=`<strong>Mixed:</strong> MAs not aligned. Reduce size.`;}
+    setCard('ma',{sig:eSig,val:eVal,sub:`7d ${fmtP(ma7)} · 25d ${fmtP(ma25)} · 99d ${fmtP(ma99)}`,interp:eInterp,score:eScore});
 
-    // 200d MA
     const ma200=closes.slice(-200).reduce((a,b)=>a+b,0)/Math.min(200,L);
     const curP=closes[L-1];
     const pct200=((curP-ma200)/ma200)*100;
-
     let m2Sig,m2Score,m2Interp;
-    if(curP>ma200*1.2){m2Sig='bullish';m2Score=70;m2Interp=`<strong>Well above 200d (+${pct200.toFixed(1)}%):</strong> Bull market. Extended but confirmed. 200d: $${Math.round(ma200).toLocaleString()}`;}
-    else if(curP>ma200){m2Sig='bullish';m2Score=80;m2Interp=`<strong>Above 200d (+${pct200.toFixed(1)}%):</strong> Bull market. Near 200d = ideal entry zone. 200d: $${Math.round(ma200).toLocaleString()}`;}
-    else if(curP>ma200*0.85){m2Sig='bearish';m2Score=30;m2Interp=`<strong>Below 200d (${pct200.toFixed(1)}%):</strong> Bear context. Wait for reclaim. 200d: $${Math.round(ma200).toLocaleString()}`;}
-    else{m2Sig='bearish';m2Score=10;m2Interp=`<strong>Far below 200d (${pct200.toFixed(1)}%):</strong> Deep bear. Capital preservation. 200d: $${Math.round(ma200).toLocaleString()}`;}
-    setCard('200',{sig:m2Sig,val:'$'+Math.round(ma200).toLocaleString(),sub:`Current $${Math.round(curP).toLocaleString()} · ${pct200>=0?'+':''}${pct200.toFixed(1)}% vs 200d`,interp:m2Interp,score:m2Score});
+    if(curP>ma200*1.2){m2Sig='bullish';m2Score=70;m2Interp=`<strong>Well above 200d (+${pct200.toFixed(1)}%):</strong> Bull market confirmed.`;}
+    else if(curP>ma200){m2Sig='bullish';m2Score=80;m2Interp=`<strong>Above 200d (+${pct200.toFixed(1)}%):</strong> Bull market. Near 200d = ideal entry.`;}
+    else if(curP>ma200*0.85){m2Sig='bearish';m2Score=30;m2Interp=`<strong>Below 200d (${pct200.toFixed(1)}%):</strong> Bear context. Wait for reclaim.`;}
+    else{m2Sig='bearish';m2Score=10;m2Interp=`<strong>Far below 200d (${pct200.toFixed(1)}%):</strong> Deep bear. Capital preservation.`;}
+    setCard('200',{sig:m2Sig,val:fmtP(ma200),sub:`Current ${fmtP(curP)} · ${pct200>=0?'+':''}${pct200.toFixed(1)}% vs 200d`,interp:m2Interp,score:m2Score});
 
-    // 7d trend
     const p7d=closes[L-8]||closes[0];
     const t7d=((curP-p7d)/p7d)*100;
-    el('btc7').textContent=(t7d>=0?'+':'')+t7d.toFixed(1)+'%';
-    el('btc7').style.color=t7d>=0?'var(--green)':'var(--red)';
-    el('btc7s').textContent=`7-day trend · MA ${ma7>ma25?'bullish':'bearish'}`;
+    el('asset7').textContent=(t7d>=0?'+':'')+t7d.toFixed(1)+'%';
+    el('asset7').style.color=t7d>=0?'var(--green)':'var(--red)';
+    el('asset7s').textContent=`7-day trend · MA ${ma7>ma25?'bullish':'bearish'}`;
 
-    // Volume momentum
     const vol7=volumes.slice(-7).reduce((a,b)=>a+b,0)/7;
     const vol30=volumes.slice(-30).reduce((a,b)=>a+b,0)/30;
     const volRatio=vol7/vol30;
-
     let vSig,vScore,vInterp;
-    if(volRatio>1.5){vSig='bullish';vScore=75;vInterp=`<strong>High volume (${volRatio.toFixed(2)}x avg):</strong> Strong participation. Moves more likely to sustain.`;}
-    else if(volRatio>1.1){vSig='bullish';vScore=60;vInterp=`<strong>Above average (${volRatio.toFixed(2)}x):</strong> Good participation. Supports current price action.`;}
-    else if(volRatio>0.8){vSig='neutral';vScore=50;vInterp=`<strong>Average volume (${volRatio.toFixed(2)}x):</strong> Normal conditions. No volume signal.`;}
-    else{vSig='bearish';vScore=30;vInterp=`<strong>Low volume (${volRatio.toFixed(2)}x avg):</strong> Weak participation. Breakouts less reliable.`;}
-    setCard('vol',{sig:vSig,val:volRatio.toFixed(2)+'x',sub:'7d vs 30d average volume',interp:vInterp,score:vScore});
+    if(volRatio>1.5){vSig='bullish';vScore=75;vInterp=`<strong>High volume (${volRatio.toFixed(2)}x):</strong> Strong participation.`;}
+    else if(volRatio>1.1){vSig='bullish';vScore=60;vInterp=`<strong>Above avg (${volRatio.toFixed(2)}x):</strong> Good participation.`;}
+    else if(volRatio>0.8){vSig='neutral';vScore=50;vInterp=`<strong>Average (${volRatio.toFixed(2)}x):</strong> Normal conditions.`;}
+    else{vSig='bearish';vScore=30;vInterp=`<strong>Low (${volRatio.toFixed(2)}x):</strong> Weak participation. Breakouts less reliable.`;}
+    setCard('vol',{sig:vSig,val:volRatio.toFixed(2)+'x',sub:'7d vs 30d avg volume',interp:vInterp,score:vScore});
 
-    // Category scores — fScore may not exist if fundingData was null
-    const fScore = fundingData ? (
-      fundingData.rate*100 < -0.01 ? 85 :
-      fundingData.rate*100 < 0.01 ? 65 :
-      fundingData.rate*100 < 0.05 ? 45 :
-      fundingData.rate*100 < 0.1 ? 25 : 10
-    ) : 50;
-    cats.pm=Math.round(rn*0.32+mScore*0.28+eScore*0.20+m2Score*0.20);
-    cats.ms=Math.round(fScore*0.45+vScore*0.35+50*0.20);
-    cats.tr=Math.round(eScore*0.4+mScore*0.35+rn*0.25);
+    cats.pm=Math.round(rn*.32+mScore*.28+eScore*.20+m2Score*.20);
+    cats.tr=Math.round(eScore*.4+mScore*.35+rn*.25);
+
+    const [fScore,oiScore]=await Promise.all([fetchFundingAndOI(),fetchOI()]);
+    cats.ms=Math.round(fScore*.45+oiScore*.35+vScore*.20);
+
     updComposite();
 
   }catch(e){
-    console.error('Binance fetch failed:',e);
-    setBadge('API FAIL', 'err');
-    ['rsi','macd','ma','200','fund','vol','ratio'].forEach(id=>{
-      setCard(id,{sig:'neutral',val:'ERR',sub:'API error — refresh to retry',interp:`Could not fetch data: ${e.message}`});
+    console.error('Main data fetch failed:',e);
+    setBadge('API FAIL','err');
+    ['rsi','macd','ma','200','fund','oi','vol','ratio'].forEach(id=>{
+      setCard(id,{sig:'neutral',val:'ERR',sub:'Fetch failed — refresh',interp:`Error: ${e.message}`});
     });
   }
 }
 
-// ── Main ──────────────────────────────────────────
+// NEW: Auto-refresh toggle
+function toggleAutoRefresh(){
+  if(autoRefreshInterval){
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval=null;
+    el('auto-btn').textContent='⏱ AUTO: OFF';
+    el('auto-btn').classList.remove('active');
+  } else {
+    autoRefreshInterval=setInterval(loadAll,5*60*1000);
+    el('auto-btn').textContent='⏱ AUTO: ON';
+    el('auto-btn').classList.add('active');
+    loadAll();
+  }
+}
+
+// NEW: Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if(e.target.tagName==='INPUT') return;
+  
+  switch(e.key.toLowerCase()){
+    case 'r': loadAll(); break;
+    case 'c': toggleCompare(); break;
+    case '1': switchAsset('BTCUSDT', document.querySelector('[data-sym="BTCUSDT"]')); break;
+    case '2': switchAsset('ETHUSDT', document.querySelector('[data-sym="ETHUSDT"]')); break;
+    case '3': switchAsset('SOLUSDT', document.querySelector('[data-sym="SOLUSDT"]')); break;
+    case '4': switchAsset('BNBUSDT', document.querySelector('[data-sym="BNBUSDT"]')); break;
+    case '5': switchAsset('XRPUSDT', document.querySelector('[data-sym="XRPUSDT"]')); break;
+    case 'escape': if(compareMode) toggleCompare(); break;
+  }
+});
+
 async function loadAll(){
   el('upd').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  Object.keys(cats).forEach(k=>cats[k]=null);
-  await Promise.all([fetchFG(),fetchBinance()]);
-  updComposite();
+  setBadge('LOADING','warn');
+  await Promise.all([fetchFG(), fetchMainData()]);
+}
+
+async function loadAllAssets(){
+  for(const sym of Object.keys(ASSETS)){
+    if(sym!==currentAsset) loadAssetBackground(sym);
+  }
 }
 
 initChart();
-loadAll();
-setInterval(loadAll, 5*60*1000);
+loadAll().then(()=>loadAllAssets());
 </script>
 </body>
 </html>
