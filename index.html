@@ -1,252 +1,898 @@
-SIGNAL/DASH V2.0
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signal Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
-LIVE
-—
-↺ REFRESH
-—
-SCORE / 100
-LOADING
-Fetching live signals...
-Connecting to data sources. Takes ~10 seconds.
-SUGGESTED ALLOCATION
-—
-of available capital
-CONFIDENCE
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #141414;
+    --bg3: #1e1e1e;
+    --border: rgba(255,255,255,0.1);
+    --border-hi: rgba(255,255,255,0.25);
+    --text: #ffffff;
+    --text2: #cccccc;
+    --muted: #888888;
+    --dim: #444444;
+    --accent: #b8ff45;
+    --accent2: #45d4ff;
+    --warn: #ffb545;
+    --danger: #ff5555;
+    --weak-buy: #88cc44;
+    --weak-sell: #ff8844;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --r: 6px;
+  }
 
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px); pointer-events:none; z-index:100; }
 
+  /* HEADER */
+  header { display:flex; align-items:center; justify-content:space-between; padding:20px 32px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg); z-index:10; }
+  .logo { font-family:var(--mono); font-size:13px; font-weight:600; letter-spacing:0.14em; color:var(--accent); text-transform:uppercase; }
+  .logo span { color:var(--muted); font-weight:400; }
+  .header-right { display:flex; align-items:center; gap:20px; }
+  .live-dot { display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:0.08em; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .last-update { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .refresh-btn { font-family:var(--mono); font-size:11px; color:var(--text2); border:1px solid var(--border); background:none; padding:6px 14px; border-radius:var(--r); cursor:pointer; letter-spacing:0.06em; transition:all .15s; }
+  .refresh-btn:hover { color:var(--accent); border-color:var(--accent); }
 
+  main { max-width:1280px; margin:0 auto; padding:28px 32px; display:grid; gap:18px; }
 
+  /* RECOMMENDATION */
+  .rec-panel { border-radius:var(--r); padding:32px 36px; display:grid; grid-template-columns:auto 1fr auto; gap:36px; align-items:center; border:1px solid transparent; transition:background .5s,border-color .5s; }
+  .rec-panel.p-strong-buy  { background:rgba(184,255,69,.08); border-color:rgba(184,255,69,.35); }
+  .rec-panel.p-buy         { background:rgba(184,255,69,.05); border-color:rgba(184,255,69,.22); }
+  .rec-panel.p-weak-buy    { background:rgba(136,204,68,.05); border-color:rgba(136,204,68,.22); }
+  .rec-panel.p-hold        { background:rgba(255,181,69,.05); border-color:rgba(255,181,69,.22); }
+  .rec-panel.p-weak-sell   { background:rgba(255,136,68,.06); border-color:rgba(255,136,68,.22); }
+  .rec-panel.p-sell        { background:rgba(255,85,85,.06); border-color:rgba(255,85,85,.25); }
+  .rec-panel.p-strong-sell { background:rgba(255,85,85,.10); border-color:rgba(255,85,85,.4); }
+  .rec-panel.p-loading     { background:var(--bg2); border-color:var(--border); }
 
-—BUY
-—HOLD
-—SELL
-NOT FINANCIAL ADVICE · EDUCATIONAL PURPOSES ONLY · ALWAYS SET A STOP-LOSS · NEVER RISK MORE THAN YOU CAN AFFORD TO LOSE
-PRICE & MOMENTUM
-—
-Weight: 25%
+  .rec-score-wrap { text-align:center; min-width:120px; }
+  .rec-score-num { font-family:var(--mono); font-size:72px; font-weight:600; line-height:1; transition:color .5s; }
+  .rec-score-sub { font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.1em; margin-top:5px; text-transform:uppercase; }
 
-ON-CHAIN
-—
-Weight: 20%
+  .rec-tag { display:inline-block; font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.1em; padding:5px 14px; border-radius:3px; text-transform:uppercase; margin-bottom:10px; }
+  .t-strong-buy  { background:rgba(184,255,69,.18); color:var(--accent); }
+  .t-buy         { background:rgba(184,255,69,.12); color:var(--accent); }
+  .t-weak-buy    { background:rgba(136,204,68,.14); color:var(--weak-buy); }
+  .t-hold        { background:rgba(255,181,69,.14); color:var(--warn); }
+  .t-weak-sell   { background:rgba(255,136,68,.14); color:var(--weak-sell); }
+  .t-sell        { background:rgba(255,85,85,.14); color:var(--danger); }
+  .t-strong-sell { background:rgba(255,85,85,.22); color:var(--danger); }
+  .t-loading     { background:var(--bg3); color:var(--muted); }
 
-MARKET STRUCTURE
-—
-Weight: 25%
+  .rec-title { font-size:22px; font-weight:600; color:var(--text); margin-bottom:10px; }
+  .rec-detail { font-size:13px; color:var(--text2); line-height:1.8; max-width:560px; }
+  .rec-detail strong { color:var(--text); font-weight:600; }
 
-SENTIMENT
-—
-Weight: 15%
+  .rec-right { min-width:180px; }
+  .alloc-label { font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; }
+  .alloc-val { font-family:var(--mono); font-size:30px; font-weight:600; color:var(--text); margin-bottom:4px; }
+  .alloc-sub { font-size:12px; color:var(--muted); margin-bottom:16px; }
 
-INSTITUTIONAL & MACRO
-—
-Weight: 15%
+  .conf-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .conf-label { font-family:var(--mono); font-size:11px; color:var(--muted); width:80px; }
+  .pips { display:flex; gap:4px; }
+  .pip { width:9px; height:9px; border-radius:50%; background:var(--dim); transition:background .4s; }
+  .pip.on-buy  { background:var(--accent); }
+  .pip.on-hold { background:var(--warn); }
+  .pip.on-sell { background:var(--danger); }
 
-Composite Signal Trend — 30 Days
-Loading historical data...
+  .vote-row { display:flex; gap:14px; font-family:var(--mono); font-size:12px; margin-top:8px; }
+  .vi { color:var(--muted); }
+  .vi span { font-weight:600; margin-right:3px; }
+  .vb span { color:var(--accent); }
+  .vh span { color:var(--warn); }
+  .vs span { color:var(--danger); }
 
-Composite
+  .disclaimer { font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:.06em; text-align:center; }
 
-Fear & Greed
+  /* CATEGORY BAR */
+  .cat-bar { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:24px 28px; display:grid; grid-template-columns:repeat(5,1fr); }
+  .cat { padding:0 20px; border-right:1px solid var(--border); }
+  .cat:first-child { padding-left:0; }
+  .cat:last-child { border-right:none; padding-right:0; }
+  .cat-lbl { font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; }
+  .cat-num { font-family:var(--mono); font-size:30px; font-weight:600; line-height:1; margin-bottom:4px; }
+  .cat-wt { font-size:12px; color:var(--muted); }
+  .cat-track { height:3px; background:var(--dim); border-radius:2px; margin-top:10px; }
+  .cat-fill { height:100%; border-radius:2px; transition:width .8s; }
 
-RSI
+  /* CHART */
+  .chart-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:24px 28px; }
+  .chart-hdr { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+  .chart-title { font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px; }
+  .chart-sub { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .chart-legend { display:flex; gap:18px; align-items:center; }
+  .leg { display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11px; color:var(--text2); }
+  .leg-line { width:18px; height:2px; border-radius:1px; }
+  .chart-wrap { position:relative; height:210px; }
+  .chart-zones { display:flex; gap:20px; margin-top:14px; font-family:var(--mono); font-size:11px; color:var(--muted); flex-wrap:wrap; }
+  .z-item { display:flex; align-items:center; gap:6px; }
+  .z-dot { width:10px; height:10px; border-radius:2px; }
 
+  /* PRICES */
+  .price-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .price-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:18px 20px; }
+  .p-ticker { font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-bottom:6px; }
+  .p-val { font-family:var(--mono); font-size:20px; font-weight:600; color:var(--text); }
+  .p-chg { font-family:var(--mono); font-size:13px; font-weight:500; margin-left:8px; }
+  .p-chg.pos { color:var(--accent); }
+  .p-chg.neg { color:var(--danger); }
+  .p-sub { font-size:12px; color:var(--muted); margin-top:4px; }
 
-Strong Buy (>75)
+  /* SECTION */
+  .sec-hdr { display:flex; align-items:center; justify-content:space-between; }
+  .sec-lbl { font-family:var(--mono); font-size:12px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; }
+  .sec-sub { font-size:12px; color:var(--muted); }
 
-Buy (15–75)
+  /* SIGNAL CARDS */
+  .sig-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+  .sig-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:20px 22px; position:relative; overflow:hidden; transition:border-color .2s; }
+  .sig-card::before { content:''; position:absolute; top:0; left:0; width:3px; height:100%; transition:background .3s; }
+  .sig-card.bullish::before { background:var(--accent); }
+  .sig-card.bearish::before { background:var(--danger); }
+  .sig-card.neutral::before  { background:var(--warn); }
+  .sig-card.loading::before  { background:var(--dim); }
+  .sig-card.manual::before   { background:var(--dim); }
+  .sig-card:hover { border-color:var(--border-hi); }
 
-Hold (-15 to 15)
+  .card-hdr { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .card-src { font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; margin-bottom:3px; }
+  .card-name { font-size:14px; font-weight:600; color:var(--text); }
+  .cbadge { font-family:var(--mono); font-size:10px; padding:3px 9px; border-radius:3px; letter-spacing:.06em; font-weight:600; text-transform:uppercase; white-space:nowrap; }
+  .cb-bullish { background:rgba(184,255,69,.14); color:var(--accent); }
+  .cb-bearish { background:rgba(255,85,85,.14); color:var(--danger); }
+  .cb-neutral  { background:rgba(255,181,69,.14); color:var(--warn); }
+  .cb-loading  { background:var(--bg3); color:var(--muted); }
+  .cb-manual   { background:var(--bg3); color:var(--muted); }
 
-Sell (<-15)
-—
-BTC / USD
-—
-—
-ETH / USD
-—
-—
-BTC 7-DAY
-—
-EMA loading...
-TOTAL MARKET CAP
-—
-Crypto total
-PRICE & MOMENTUM — 25% WEIGHT
-Live · CoinGecko
-COINGECKO · 8% WEIGHT
-RSI (14-day)
-LOADING
-Signal score: —
-⟳
-Computing from price history...
-Relative Strength Index — measures overbought/oversold conditions
-COINGECKO · 7% WEIGHT
-MACD Signal
-LOADING
-Signal score: —
-⟳
-Computing MACD...
-Moving Average Convergence Divergence — trend momentum
-COINGECKO · 5% WEIGHT
-MA Crossover 7/25/99d
-LOADING
-Signal score: —
-⟳
-Computing moving averages...
-7d vs 25d vs 99d alignment — trend direction
-COINGECKO · 5% WEIGHT
-Price vs 200-day MA
-LOADING
-Signal score: —
-⟳
-Computing 200-day average...
-Above 200d MA = bull market. Below = bear market context.
-MARKET STRUCTURE — 25% WEIGHT
-Live + manual
-COINGECKO · 6% WEIGHT
-BTC Dominance
-LOADING
-Signal score: —
-⟳
-Loading...
-Bitcoin's share of total crypto market cap
-COINGECKO · 5% WEIGHT
-Total Market Cap 24h
-LOADING
-Signal score: —
-⟳
-Loading...
-Capital flowing in or out of crypto overall
-COINGLASS · 8% WEIGHT
-Funding Rate
-MANUAL
-Signal score: check manually
-→ Coinglass
-Browser API blocked (CORS)
-Bullish: 0–0.01% (neutral). Caution: >0.05% (longs crowded). Very bullish: Negative (shorts paying longs). Check before every perp. Open ↗
-COINGLASS · 6% WEIGHT
-Open Interest
-MANUAL
-Signal score: check manually
-→ Coinglass
-Browser API blocked (CORS)
-Bullish: OI rising + price rising (confirmed trend). Bearish: OI rising + price falling (short squeeze risk or capitulation). Open ↗
-SENTIMENT — 15% WEIGHT
-Live + manual
-ALTERNATIVE.ME · 6% WEIGHT
-Fear & Greed Index
-LOADING
-Signal score: —
-⟳
-Fetching...
-Crowd psychology — extreme readings are contrarian signals
-COINGECKO · 3% WEIGHT
-ETH/BTC Ratio
-LOADING
-Signal score: —
-⟳
-Risk appetite indicator
-Rising = risk-on. Falling = risk-off (BTC only).
-GOOGLE TRENDS · 3% WEIGHT
-Google Trends
-MANUAL
-Signal score: check manually
-→ Google Trends
-No public API
-Bullish: Low/moderate search interest. Bearish: Parabolic spike in "Bitcoin" searches — retail FOMO top signal. Check ↗
-DERIBIT · 3% WEIGHT
-Put/Call Ratio
-MANUAL
-Signal score: check manually
-→ Deribit
-Options data — no free browser API
-Bullish: High ratio >1.2 (fear dominating options). Bearish: Low ratio <0.6 (complacency). Check ↗
-INSTITUTIONAL & MACRO — 15% WEIGHT
-Live + manual
-COINGECKO · 5% WEIGHT
-Stablecoin Supply
-LOADING
-Signal score: —
-⟳
-Loading USDT + USDC...
-Rising supply = dry powder entering ecosystem. Bullish for crypto.
-FARSIDE · 6% WEIGHT
-BTC ETF Flows
-MANUAL
-Signal score: check manually
-→ Farside
-No free real-time API
-Bullish: Consistent net inflows >$200M/day. Bearish: Multi-day net outflows. Most important institutional signal. Check ↗
-CRYPTOQUANT · 4% WEIGHT
-Exchange Net Flow
-MANUAL
-Signal score: check manually
-→ CryptoQuant
-Free account required
-Bullish: Net outflows (BTC leaving exchanges = accumulation). Bearish: Net inflows (BTC moving to exchanges = selling pressure ahead). Check ↗
-ON-CHAIN FUNDAMENTALS — 20% WEIGHT
-Free Glassnode account required
-GLASSNODE · 5% WEIGHT
-Active Addresses
-MANUAL
-→ Glassnode
-Free account required
-Bullish: 7d MA of active addresses growing. Bearish: Declining addresses = disengagement from the network. Check ↗
-GLASSNODE · 4% WEIGHT
-HODL Waves / LTH Supply
-MANUAL
-→ Glassnode
-Free account required
-Bullish: Long-term holder supply rising (conviction accumulation). Bearish: LTH supply falling = old hands distributing into strength. Check ↗
-GLASSNODE · 3% WEIGHT
-Transaction Volume
-MANUAL
-→ Glassnode
-Free account required
-Bullish: Rising on-chain volume confirms price moves. Bearish: Rising price on falling volume = weak hands driving — unsustainable. Check ↗
-CRYPTOQUANT · 2% WEIGHT
-Miner Reserves
-MANUAL
-→ CryptoQuant
-Free account required
-Bullish: Miners accumulating (holding BTC). Bearish: Miners selling reserves = selling pressure incoming. Often leads price by 1–2 weeks. Check ↗
-PERP TRADE CHECKLIST — RUN THROUGH BEFORE EVERY LEVERAGED POSITION
-CHECK
-WHERE TO LOOK
-WHAT YOU NEED TO SEE
-Composite score
-Above ↑
-Above +15 (Weak Buy or better) to open any long. Below -15 = no longs at all.
-Confidence level
-Above ↑
-3+ pips (Medium or High). Low confidence = skip or reduce size by 50%.
-Funding rate
-Coinglass
-0–0.01% ideal. Above 0.05% = avoid longs. Negative = strong long bias.
-Open interest
-Coinglass
-Rising OI + rising price = trend confirmed. Rising OI + falling price = danger.
-RSI (4H · TradingView)
-TradingView
-Below 40 = oversold, good long entry. Above 70 = overbought, avoid new longs.
-Max leverage
-Your exchange
-2–3x absolute maximum. Isolated margin only. Never cross margin as a beginner.
-Stop-loss
-Your exchange
-Set BEFORE you enter. 8–12% below entry. This is non-negotiable.
-Position size
-Your plan
-Risk max 1–2% of total capital per trade. On $10k that's $100–200 at risk.
-QUICK LINKS
-Funding rates
-Open interest
-ETF flows
-Fear & Greed
-BTC chart
-ETH chart
-Google Trends
-CryptoQuant
-Glassnode
-Put/Call ratio
-Whale Alert
+  .card-score { font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .card-val { font-family:var(--mono); font-size:30px; font-weight:600; line-height:1; margin-bottom:6px; transition:color .3s; }
+  .card-val.bullish { color:var(--accent); }
+  .card-val.bearish { color:var(--danger); }
+  .card-val.neutral { color:var(--warn); }
+  .card-val.loading { color:var(--dim); }
+  .card-val.manual  { color:var(--muted); font-size:16px; line-height:1.5; margin-top:4px; }
+  .card-sub { font-size:12px; color:var(--muted); margin-bottom:12px; }
+  .card-int { font-size:12px; color:var(--text2); border-top:1px solid var(--border); padding-top:12px; line-height:1.7; }
+  .card-int strong { color:var(--text); font-weight:600; }
+  .card-int a { color:var(--accent2); text-decoration:none; }
+  .card-int a:hover { text-decoration:underline; }
+
+  .spinner { display:inline-block; animation:spin 1s linear infinite; }
+
+  /* CHECKLIST */
+  .cl-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:22px 26px; }
+  .cl-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .cl-table th { text-align:left; color:var(--muted); font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:400; padding:0 0 12px; border-bottom:1px solid var(--border); }
+  .cl-table td { padding:11px 0; border-bottom:1px solid var(--border); color:var(--text2); vertical-align:top; }
+  .cl-table td:first-child { color:var(--text); font-weight:600; width:28%; }
+  .cl-table td:nth-child(2) { width:28%; color:var(--muted); font-family:var(--mono); font-size:12px; }
+  .cl-table tr:last-child td { border-bottom:none; }
+
+  /* LINKS */
+  .links-row { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:18px 22px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .links-lbl { font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; margin-right:6px; }
+  .ext-link { font-family:var(--mono); font-size:11px; color:var(--text2); border:1px solid var(--border); padding:5px 12px; border-radius:4px; text-decoration:none; letter-spacing:.04em; transition:all .15s; }
+  .ext-link:hover { color:var(--accent); border-color:var(--accent); }
+  .ext-link::after { content:' ↗'; font-size:10px; }
+
+  @media(max-width:1000px){ .cat-bar{grid-template-columns:repeat(3,1fr)} .price-row{grid-template-columns:repeat(2,1fr)} }
+  @media(max-width:700px){
+    main{padding:16px} header{padding:16px}
+    .rec-panel{grid-template-columns:1fr;gap:20px}
+    .rec-right{border-top:1px solid var(--border);padding-top:16px}
+    .cat-bar{grid-template-columns:repeat(2,1fr);gap:16px}
+    .cat{border-right:none;border-bottom:1px solid var(--border);padding:0 0 16px}
+    .cat:last-child{border-bottom:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Signal<span>/</span>Dash <span style="font-size:10px;color:var(--dim);margin-left:10px;font-weight:400">v2.0</span></div>
+  <div class="header-right">
+    <div class="live-dot"><div class="dot"></div>LIVE</div>
+    <div class="last-update" id="last-update">—</div>
+    <button class="refresh-btn" onclick="loadAll()">↺ REFRESH</button>
+  </div>
+</header>
+
+<main>
+
+<!-- RECOMMENDATION -->
+<div class="rec-panel p-loading" id="rec-panel">
+  <div class="rec-score-wrap">
+    <div class="rec-score-num" id="rec-score">—</div>
+    <div class="rec-score-sub">score / 100</div>
+  </div>
+  <div>
+    <div><span class="rec-tag t-loading" id="rec-tag">LOADING</span></div>
+    <div class="rec-title" id="rec-title">Fetching live signals...</div>
+    <div class="rec-detail" id="rec-detail">Connecting to data sources. Takes ~10 seconds.</div>
+  </div>
+  <div class="rec-right">
+    <div class="alloc-label">Suggested allocation</div>
+    <div class="alloc-val" id="rec-alloc">—</div>
+    <div class="alloc-sub" id="rec-alloc-sub">of available capital</div>
+    <div class="conf-row">
+      <div class="conf-label">CONFIDENCE</div>
+      <div class="pips" id="pips">
+        <div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div>
+      </div>
+    </div>
+    <div class="vote-row">
+      <div class="vi vb"><span id="v-buy">—</span>BUY</div>
+      <div class="vi vh"><span id="v-hold">—</span>HOLD</div>
+      <div class="vi vs"><span id="v-sell">—</span>SELL</div>
+    </div>
+  </div>
+</div>
+<div class="disclaimer">NOT FINANCIAL ADVICE · EDUCATIONAL PURPOSES ONLY · ALWAYS SET A STOP-LOSS · NEVER RISK MORE THAN YOU CAN AFFORD TO LOSE</div>
+
+<!-- CATEGORY SCORES -->
+<div class="cat-bar">
+  <div class="cat"><div class="cat-lbl">Price &amp; Momentum</div><div class="cat-num" id="c-pm">—</div><div class="cat-wt">Weight: 25%</div><div class="cat-track"><div class="cat-fill" id="f-pm" style="width:50%;background:var(--muted)"></div></div></div>
+  <div class="cat"><div class="cat-lbl">On-Chain</div><div class="cat-num" id="c-oc">—</div><div class="cat-wt">Weight: 20%</div><div class="cat-track"><div class="cat-fill" id="f-oc" style="width:50%;background:var(--muted)"></div></div></div>
+  <div class="cat"><div class="cat-lbl">Market Structure</div><div class="cat-num" id="c-ms">—</div><div class="cat-wt">Weight: 25%</div><div class="cat-track"><div class="cat-fill" id="f-ms" style="width:50%;background:var(--muted)"></div></div></div>
+  <div class="cat"><div class="cat-lbl">Sentiment</div><div class="cat-num" id="c-se">—</div><div class="cat-wt">Weight: 15%</div><div class="cat-track"><div class="cat-fill" id="f-se" style="width:50%;background:var(--muted)"></div></div></div>
+  <div class="cat"><div class="cat-lbl">Institutional &amp; Macro</div><div class="cat-num" id="c-im">—</div><div class="cat-wt">Weight: 15%</div><div class="cat-track"><div class="cat-fill" id="f-im" style="width:50%;background:var(--muted)"></div></div></div>
+</div>
+
+<!-- CHART -->
+<div class="chart-card">
+  <div class="chart-hdr">
+    <div>
+      <div class="chart-title">Composite Signal Trend — 30 Days</div>
+      <div class="chart-sub" id="chart-sub">Loading historical data...</div>
+    </div>
+    <div class="chart-legend">
+      <div class="leg"><div class="leg-line" style="background:var(--accent)"></div>Composite</div>
+      <div class="leg"><div class="leg-line" style="background:var(--accent2)"></div>Fear &amp; Greed</div>
+      <div class="leg"><div class="leg-line" style="background:var(--warn)"></div>RSI</div>
+    </div>
+  </div>
+  <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
+  <div class="chart-zones">
+    <div class="z-item"><div class="z-dot" style="background:rgba(184,255,69,.45)"></div>Strong Buy (&gt;75)</div>
+    <div class="z-item"><div class="z-dot" style="background:rgba(184,255,69,.2)"></div>Buy (15–75)</div>
+    <div class="z-item"><div class="z-dot" style="background:rgba(255,181,69,.35)"></div>Hold (-15 to 15)</div>
+    <div class="z-item"><div class="z-dot" style="background:rgba(255,85,85,.35)"></div>Sell (&lt;-15)</div>
+    <div style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted)" id="chart-pts">—</div>
+  </div>
+</div>
+
+<!-- PRICES -->
+<div class="price-row">
+  <div class="price-card"><div class="p-ticker">BTC / USD</div><div><span class="p-val" id="btc-price">—</span><span class="p-chg" id="btc-chg"></span></div><div class="p-sub" id="btc-sub">—</div></div>
+  <div class="price-card"><div class="p-ticker">ETH / USD</div><div><span class="p-val" id="eth-price">—</span><span class="p-chg" id="eth-chg"></span></div><div class="p-sub" id="eth-sub">—</div></div>
+  <div class="price-card"><div class="p-ticker">BTC 7-day</div><div><span class="p-val" id="btc-7d" style="font-size:18px">—</span></div><div class="p-sub" id="btc-ema-sub">EMA loading...</div></div>
+  <div class="price-card"><div class="p-ticker">Total Market Cap</div><div><span class="p-val" id="mc-val" style="font-size:18px">—</span><span class="p-chg" id="mc-chg"></span></div><div class="p-sub">Crypto total</div></div>
+</div>
+
+<!-- PRICE & MOMENTUM -->
+<div class="sec-hdr"><div class="sec-lbl">Price &amp; Momentum — 25% weight</div><div class="sec-sub">Live · CoinGecko</div></div>
+<div class="sig-grid">
+  <div class="sig-card loading" id="card-rsi">
+    <div class="card-hdr"><div><div class="card-src">coingecko · 8% weight</div><div class="card-name">RSI (14-day)</div></div><div class="cbadge cb-loading" id="badge-rsi">LOADING</div></div>
+    <div class="card-score" id="score-rsi">Signal score: —</div>
+    <div class="card-val loading" id="val-rsi"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-rsi">Computing from price history...</div>
+    <div class="card-int" id="int-rsi">Relative Strength Index — measures overbought/oversold conditions</div>
+  </div>
+  <div class="sig-card loading" id="card-macd">
+    <div class="card-hdr"><div><div class="card-src">coingecko · 7% weight</div><div class="card-name">MACD Signal</div></div><div class="cbadge cb-loading" id="badge-macd">LOADING</div></div>
+    <div class="card-score" id="score-macd">Signal score: —</div>
+    <div class="card-val loading" id="val-macd"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-macd">Computing MACD...</div>
+    <div class="card-int" id="int-macd">Moving Average Convergence Divergence — trend momentum</div>
+  </div>
+  <div class="sig-card loading" id="card-ema">
+    <div class="card-hdr"><div><div class="card-src">coingecko · 5% weight</div><div class="card-name">MA Crossover 7/25/99d</div></div><div class="cbadge cb-loading" id="badge-ema">LOADING</div></div>
+    <div class="card-score" id="score-ema">Signal score: —</div>
+    <div class="card-val loading" id="val-ema"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-ema">Computing moving averages...</div>
+    <div class="card-int" id="int-ema">7d vs 25d vs 99d alignment — trend direction</div>
+  </div>
+  <div class="sig-card loading" id="card-ma200">
+    <div class="card-hdr"><div><div class="card-src">coingecko · 5% weight</div><div class="card-name">Price vs 200-day MA</div></div><div class="cbadge cb-loading" id="badge-ma200">LOADING</div></div>
+    <div class="card-score" id="score-ma200">Signal score: —</div>
+    <div class="card-val loading" id="val-ma200"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-ma200">Computing 200-day average...</div>
+    <div class="card-int" id="int-ma200">Above 200d MA = bull market. Below = bear market context.</div>
+  </div>
+</div>
+
+<!-- MARKET STRUCTURE -->
+<div class="sec-hdr"><div class="sec-lbl">Market Structure — 25% weight</div><div class="sec-sub">Live + manual</div></div>
+<div class="sig-grid">
+  <div class="sig-card loading" id="card-dom">
+    <div class="card-hdr"><div><div class="card-src">coingecko · 6% weight</div><div class="card-name">BTC Dominance</div></div><div class="cbadge cb-loading" id="badge-dom">LOADING</div></div>
+    <div class="card-score" id="score-dom">Signal score: —</div>
+    <div class="card-val loading" id="val-dom"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-dom">Loading...</div>
+    <div class="card-int" id="int-dom">Bitcoin's share of total crypto market cap</div>
+  </div>
+  <div class="sig-card loading" id="card-mc">
+    <div class="card-hdr"><div><div class="card-src">coingecko · 5% weight</div><div class="card-name">Total Market Cap 24h</div></div><div class="cbadge cb-loading" id="badge-mc">LOADING</div></div>
+    <div class="card-score" id="score-mc">Signal score: —</div>
+    <div class="card-val loading" id="val-mc"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-mc">Loading...</div>
+    <div class="card-int" id="int-mc">Capital flowing in or out of crypto overall</div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">coinglass · 8% weight</div><div class="card-name">Funding Rate</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-score">Signal score: check manually</div>
+    <div class="card-val manual">→ Coinglass</div>
+    <div class="card-sub">Browser API blocked (CORS)</div>
+    <div class="card-int"><strong>Bullish:</strong> 0–0.01% (neutral). <strong>Caution:</strong> &gt;0.05% (longs crowded). <strong>Very bullish:</strong> Negative (shorts paying longs). Check before every perp. <a href="https://www.coinglass.com/FundingRate" target="_blank">Open ↗</a></div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">coinglass · 6% weight</div><div class="card-name">Open Interest</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-score">Signal score: check manually</div>
+    <div class="card-val manual">→ Coinglass</div>
+    <div class="card-sub">Browser API blocked (CORS)</div>
+    <div class="card-int"><strong>Bullish:</strong> OI rising + price rising (confirmed trend). <strong>Bearish:</strong> OI rising + price falling (short squeeze risk or capitulation). <a href="https://www.coinglass.com/OpenInterest" target="_blank">Open ↗</a></div>
+  </div>
+</div>
+
+<!-- SENTIMENT -->
+<div class="sec-hdr"><div class="sec-lbl">Sentiment — 15% weight</div><div class="sec-sub">Live + manual</div></div>
+<div class="sig-grid">
+  <div class="sig-card loading" id="card-fg">
+    <div class="card-hdr"><div><div class="card-src">alternative.me · 6% weight</div><div class="card-name">Fear &amp; Greed Index</div></div><div class="cbadge cb-loading" id="badge-fg">LOADING</div></div>
+    <div class="card-score" id="score-fg">Signal score: —</div>
+    <div class="card-val loading" id="val-fg"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-fg">Fetching...</div>
+    <div class="card-int" id="int-fg">Crowd psychology — extreme readings are contrarian signals</div>
+  </div>
+  <div class="sig-card loading" id="card-ratio">
+    <div class="card-hdr"><div><div class="card-src">coingecko · 3% weight</div><div class="card-name">ETH/BTC Ratio</div></div><div class="cbadge cb-loading" id="badge-ratio">LOADING</div></div>
+    <div class="card-score" id="score-ratio">Signal score: —</div>
+    <div class="card-val loading" id="val-ratio"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-ratio">Risk appetite indicator</div>
+    <div class="card-int" id="int-ratio">Rising = risk-on. Falling = risk-off (BTC only).</div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">google trends · 3% weight</div><div class="card-name">Google Trends</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-score">Signal score: check manually</div>
+    <div class="card-val manual">→ Google Trends</div>
+    <div class="card-sub">No public API</div>
+    <div class="card-int"><strong>Bullish:</strong> Low/moderate search interest. <strong>Bearish:</strong> Parabolic spike in "Bitcoin" searches — retail FOMO top signal. <a href="https://trends.google.com/trends/explore?q=bitcoin" target="_blank">Check ↗</a></div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">deribit · 3% weight</div><div class="card-name">Put/Call Ratio</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-score">Signal score: check manually</div>
+    <div class="card-val manual">→ Deribit</div>
+    <div class="card-sub">Options data — no free browser API</div>
+    <div class="card-int"><strong>Bullish:</strong> High ratio &gt;1.2 (fear dominating options). <strong>Bearish:</strong> Low ratio &lt;0.6 (complacency). <a href="https://www.deribit.com/statistics/BTC/options-statistics" target="_blank">Check ↗</a></div>
+  </div>
+</div>
+
+<!-- INSTITUTIONAL -->
+<div class="sec-hdr"><div class="sec-lbl">Institutional &amp; Macro — 15% weight</div><div class="sec-sub">Live + manual</div></div>
+<div class="sig-grid">
+  <div class="sig-card loading" id="card-stable">
+    <div class="card-hdr"><div><div class="card-src">coingecko · 5% weight</div><div class="card-name">Stablecoin Supply</div></div><div class="cbadge cb-loading" id="badge-stable">LOADING</div></div>
+    <div class="card-score" id="score-stable">Signal score: —</div>
+    <div class="card-val loading" id="val-stable"><span class="spinner">⟳</span></div>
+    <div class="card-sub" id="sub-stable">Loading USDT + USDC...</div>
+    <div class="card-int" id="int-stable">Rising supply = dry powder entering ecosystem. Bullish for crypto.</div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">farside · 6% weight</div><div class="card-name">BTC ETF Flows</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-score">Signal score: check manually</div>
+    <div class="card-val manual">→ Farside</div>
+    <div class="card-sub">No free real-time API</div>
+    <div class="card-int"><strong>Bullish:</strong> Consistent net inflows &gt;$200M/day. <strong>Bearish:</strong> Multi-day net outflows. Most important institutional signal. <a href="https://farside.co.uk/bitcoin-etf-flow-all-data-table/" target="_blank">Check ↗</a></div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">cryptoquant · 4% weight</div><div class="card-name">Exchange Net Flow</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-score">Signal score: check manually</div>
+    <div class="card-val manual">→ CryptoQuant</div>
+    <div class="card-sub">Free account required</div>
+    <div class="card-int"><strong>Bullish:</strong> Net outflows (BTC leaving exchanges = accumulation). <strong>Bearish:</strong> Net inflows (BTC moving to exchanges = selling pressure ahead). <a href="https://cryptoquant.com/asset/btc/chart/exchange-flows/exchange-netflow-total" target="_blank">Check ↗</a></div>
+  </div>
+</div>
+
+<!-- ON-CHAIN -->
+<div class="sec-hdr"><div class="sec-lbl">On-Chain Fundamentals — 20% weight</div><div class="sec-sub">Free Glassnode account required</div></div>
+<div class="sig-grid">
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">glassnode · 5% weight</div><div class="card-name">Active Addresses</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-val manual">→ Glassnode</div><div class="card-sub">Free account required</div>
+    <div class="card-int"><strong>Bullish:</strong> 7d MA of active addresses growing. <strong>Bearish:</strong> Declining addresses = disengagement from the network. <a href="https://studio.glassnode.com/metrics?a=BTC&m=addresses.ActiveCount" target="_blank">Check ↗</a></div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">glassnode · 4% weight</div><div class="card-name">HODL Waves / LTH Supply</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-val manual">→ Glassnode</div><div class="card-sub">Free account required</div>
+    <div class="card-int"><strong>Bullish:</strong> Long-term holder supply rising (conviction accumulation). <strong>Bearish:</strong> LTH supply falling = old hands distributing into strength. <a href="https://studio.glassnode.com/metrics?a=BTC&m=supply.HodlWaves" target="_blank">Check ↗</a></div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">glassnode · 3% weight</div><div class="card-name">Transaction Volume</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-val manual">→ Glassnode</div><div class="card-sub">Free account required</div>
+    <div class="card-int"><strong>Bullish:</strong> Rising on-chain volume confirms price moves. <strong>Bearish:</strong> Rising price on falling volume = weak hands driving — unsustainable. <a href="https://studio.glassnode.com/metrics?a=BTC&m=transactions.TransfersVolumeMeanUSD" target="_blank">Check ↗</a></div>
+  </div>
+  <div class="sig-card manual">
+    <div class="card-hdr"><div><div class="card-src">cryptoquant · 2% weight</div><div class="card-name">Miner Reserves</div></div><div class="cbadge cb-manual">MANUAL</div></div>
+    <div class="card-val manual">→ CryptoQuant</div><div class="card-sub">Free account required</div>
+    <div class="card-int"><strong>Bullish:</strong> Miners accumulating (holding BTC). <strong>Bearish:</strong> Miners selling reserves = selling pressure incoming. Often leads price by 1–2 weeks. <a href="https://cryptoquant.com/asset/btc/chart/miner/miner-reserve" target="_blank">Check ↗</a></div>
+  </div>
+</div>
+
+<!-- CHECKLIST -->
+<div class="cl-card">
+  <div class="sec-lbl" style="margin-bottom:18px">Perp Trade Checklist — run through before every leveraged position</div>
+  <table class="cl-table">
+    <thead><tr><th>Check</th><th>Where to look</th><th>What you need to see</th></tr></thead>
+    <tbody>
+      <tr><td>Composite score</td><td>Above ↑</td><td>Above +15 (Weak Buy or better) to open any long. Below -15 = no longs at all.</td></tr>
+      <tr><td>Confidence level</td><td>Above ↑</td><td>3+ pips (Medium or High). Low confidence = skip or reduce size by 50%.</td></tr>
+      <tr><td>Funding rate</td><td>Coinglass</td><td>0–0.01% ideal. Above 0.05% = avoid longs. Negative = strong long bias.</td></tr>
+      <tr><td>Open interest</td><td>Coinglass</td><td>Rising OI + rising price = trend confirmed. Rising OI + falling price = danger.</td></tr>
+      <tr><td>RSI (4H · TradingView)</td><td>TradingView</td><td>Below 40 = oversold, good long entry. Above 70 = overbought, avoid new longs.</td></tr>
+      <tr><td>Max leverage</td><td>Your exchange</td><td>2–3x absolute maximum. Isolated margin only. Never cross margin as a beginner.</td></tr>
+      <tr><td>Stop-loss</td><td>Your exchange</td><td>Set BEFORE you enter. 8–12% below entry. This is non-negotiable.</td></tr>
+      <tr><td>Position size</td><td>Your plan</td><td>Risk max 1–2% of total capital per trade. On $10k that's $100–200 at risk.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- LINKS -->
+<div class="links-row">
+  <div class="links-lbl">Quick links</div>
+  <a class="ext-link" href="https://www.coinglass.com/FundingRate" target="_blank">Funding rates</a>
+  <a class="ext-link" href="https://www.coinglass.com/OpenInterest" target="_blank">Open interest</a>
+  <a class="ext-link" href="https://farside.co.uk/bitcoin-etf-flow-all-data-table/" target="_blank">ETF flows</a>
+  <a class="ext-link" href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Fear &amp; Greed</a>
+  <a class="ext-link" href="https://www.tradingview.com/chart/?symbol=BTCUSDT" target="_blank">BTC chart</a>
+  <a class="ext-link" href="https://www.tradingview.com/chart/?symbol=ETHUSDT" target="_blank">ETH chart</a>
+  <a class="ext-link" href="https://trends.google.com/trends/explore?q=bitcoin" target="_blank">Google Trends</a>
+  <a class="ext-link" href="https://cryptoquant.com/" target="_blank">CryptoQuant</a>
+  <a class="ext-link" href="https://studio.glassnode.com" target="_blank">Glassnode</a>
+  <a class="ext-link" href="https://www.deribit.com/statistics/BTC/options-statistics" target="_blank">Put/Call ratio</a>
+  <a class="ext-link" href="https://twitter.com/whale_alert" target="_blank">Whale Alert</a>
+</div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════
+const cats = { pm:null, oc:null, ms:null, se:null, im:null };
+const wts  = { pm:.25, oc:.20, ms:.25, se:.15, im:.15 };
+let chart = null;
+let cd = { labels:[], composite:[], fg:[], rsi:[] };
+
+// ════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════
+const el = id => document.getElementById(id);
+
+function setCard(id, {sig, val, sub, interp, score}) {
+  const card = el('card-'+id), badge = el('badge-'+id);
+  const valEl = el('val-'+id), subEl = el('sub-'+id);
+  const intEl = el('int-'+id), scEl = el('score-'+id);
+  if (!card) return;
+  card.className = 'sig-card '+sig;
+  badge.className = 'cbadge cb-'+sig;
+  badge.textContent = sig.toUpperCase();
+  valEl.className = 'card-val '+sig;
+  valEl.textContent = val;
+  if (sub && subEl)   subEl.textContent = sub;
+  if (interp && intEl) intEl.innerHTML = interp;
+  if (score !== undefined && scEl) scEl.textContent = 'Signal score: '+(score>0?'+':'')+score;
+}
+
+const fmtP = n => '$'+Math.round(n).toLocaleString();
+const fmtPct = (n,d=1) => (n>=0?'+':'')+n.toFixed(d)+'%';
+const fmtVol = n => n>=1e9?'$'+(n/1e9).toFixed(1)+'B':n>=1e6?'$'+(n/1e6).toFixed(0)+'M':'$'+n.toLocaleString();
+
+function sColor(s) {
+  if(s>=75) return 'var(--accent)';
+  if(s>=15) return 'var(--weak-buy)';
+  if(s>=-15) return 'var(--muted)';
+  if(s>=-40) return 'var(--weak-sell)';
+  return 'var(--danger)';
+}
+const s2track = s => Math.round((s+100)/2); // -100→+100 to 0→100
+
+// ════════════════════════════════════════════════════
+// MATH
+// ════════════════════════════════════════════════════
+function ema(arr, p) {
+  const k=2/(p+1); let e=arr[0];
+  for(let i=1;i<arr.length;i++) e=arr[i]*k+e*(1-k);
+  return e;
+}
+
+function rsi(closes, p=14) {
+  if(closes.length<p+1) return null;
+  let g=0,l=0;
+  for(let i=1;i<=p;i++){const d=closes[i]-closes[i-1];d>0?g+=d:l-=d;}
+  let ag=g/p,al=l/p;
+  for(let i=p+1;i<closes.length;i++){
+    const d=closes[i]-closes[i-1];
+    ag=(ag*(p-1)+Math.max(d,0))/p; al=(al*(p-1)+Math.max(-d,0))/p;
+  }
+  return al===0?100:100-(100/(1+ag/al));
+}
+
+function normRSI(r) {
+  if(r<30)  return 100; if(r<40) return 60; if(r<50) return 25;
+  if(r<60)  return 0;   if(r<70) return -30; if(r<80) return -70;
+  return -100;
+}
+function normFG(f) {
+  if(f<=20) return 100; if(f<=35) return 60; if(f<=50) return 20;
+  if(f<=65) return -20; if(f<=80) return -60; return -100;
+}
+
+// ════════════════════════════════════════════════════
+// CHART
+// ════════════════════════════════════════════════════
+function initChart() {
+  const ctx = el('trend-chart').getContext('2d');
+  const zones = {
+    id:'zones',
+    beforeDraw(c) {
+      const {ctx,chartArea:{top,bottom,left,right},scales:{y}} = c;
+      if(!y) return; ctx.save();
+      const y75=y.getPixelForValue(75), y15=y.getPixelForValue(15);
+      const yn15=y.getPixelForValue(-15);
+      ctx.fillStyle='rgba(184,255,69,.09)'; ctx.fillRect(left,top,right-left,y75-top);
+      ctx.fillStyle='rgba(184,255,69,.04)'; ctx.fillRect(left,y75,right-left,y15-y75);
+      ctx.fillStyle='rgba(255,181,69,.07)'; ctx.fillRect(left,y15,right-left,yn15-y15);
+      ctx.fillStyle='rgba(255,85,85,.08)';  ctx.fillRect(left,yn15,right-left,bottom-yn15);
+      ctx.restore();
+    }
+  };
+  chart = new Chart(ctx, {
+    type:'line', plugins:[zones],
+    data:{ labels:[], datasets:[
+      {label:'Composite',data:[],borderColor:'#b8ff45',borderWidth:2.5,pointRadius:3,pointHoverRadius:5,tension:.35,fill:false},
+      {label:'Fear & Greed',data:[],borderColor:'#45d4ff',borderWidth:1.5,pointRadius:0,tension:.35,borderDash:[5,4],fill:false},
+      {label:'RSI',data:[],borderColor:'#ffb545',borderWidth:1.5,pointRadius:0,tension:.35,borderDash:[2,5],fill:false},
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1e1e1e', borderColor:'rgba(255,255,255,.15)', borderWidth:1,
+          titleColor:'#888', bodyColor:'#fff', padding:10,
+          titleFont:{family:'IBM Plex Mono',size:13}, bodyFont:{family:'IBM Plex Mono',size:13},
+          callbacks:{
+            title:items=>items[0].label,
+            label:item=>` ${item.dataset.label}: ${Math.round(item.raw)>0?'+':''}${Math.round(item.raw)}`
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'#cccccc',font:{family:'IBM Plex Mono',size:13},maxTicksLimit:8}, border:{color:'rgba(255,255,255,.15)'} },
+        y:{ min:-100,max:100, grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'#cccccc',font:{family:'IBM Plex Mono',size:13},stepSize:25,callback:v=>(v>0?'+':'')+v}, border:{color:'rgba(255,255,255,.15)'} }
+      }
+    }
+  });
+}
+
+function updChart() {
+  if(!chart||!cd.labels.length) return;
+  chart.data.labels=cd.labels;
+  chart.data.datasets[0].data=cd.composite;
+  chart.data.datasets[1].data=cd.fg;
+  chart.data.datasets[2].data=cd.rsi;
+  chart.update('active');
+  el('chart-pts').textContent=cd.labels.length+' days loaded';
+  el('chart-sub').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+// ════════════════════════════════════════════════════
+// COMPOSITE + RECOMMENDATION
+// ════════════════════════════════════════════════════
+function updComposite() {
+  const active = Object.entries(cats).filter(([,v])=>v!==null);
+  if(!active.length) return;
+
+  let wSum=0,wTot=0;
+  for(const [k,v] of active){wSum+=v*wts[k];wTot+=wts[k];}
+  const comp = Math.round(wSum/wTot);
+
+  // Category bars
+  [['pm','c-pm','f-pm'],['oc','c-oc','f-oc'],['ms','c-ms','f-ms'],['se','c-se','f-se'],['im','c-im','f-im']].forEach(([k,nId,fId])=>{
+    if(cats[k]!==null){
+      const v=cats[k];
+      el(nId).textContent=(v>0?'+':'')+v; el(nId).style.color=sColor(v);
+      el(fId).style.width=s2track(v)+'%'; el(fId).style.background=sColor(v);
+    }
+  });
+
+  // Signal thresholds
+  let sig,tagCls,panCls,title,detail,alloc,allocSub,conf;
+  if(comp>=75)       {sig='STRONG BUY';tagCls='t-strong-buy';panCls='p-strong-buy';title='Strong signals — aggressive accumulation';detail=`<strong>Spot:</strong> Deploy 80–100% of allocation. Scale in over 2–3 buys. <strong>Perps:</strong> 2–3x long viable if funding &lt;0.05%. Stop at -10%. Highest-conviction zone.`;alloc='80–100%';allocSub='Full allocation';conf=active.length>=4?5:4;}
+  else if(comp>=40)  {sig='BUY';tagCls='t-buy';panCls='p-buy';title='Positive signals — moderate accumulation';detail=`<strong>Spot:</strong> Deploy 50–80%. DCA in over 2–3 tranches. <strong>Perps:</strong> 2x long if funding is neutral. Set stop before entry.`;alloc='50–80%';allocSub='Moderate allocation';conf=active.length>=3?4:3;}
+  else if(comp>=15)  {sig='WEAK BUY';tagCls='t-weak-buy';panCls='p-weak-buy';title='Mild signals — light accumulation only';detail=`<strong>Spot:</strong> 25–50% of allocation. Small starter position only. <strong>Perps:</strong> Avoid unless funding is negative AND RSI below 40. Risk/reward marginal.`;alloc='25–50%';allocSub='Light allocation';conf=2;}
+  else if(comp>=-15) {sig='HOLD';tagCls='t-hold';panCls='p-hold';title='Mixed signals — hold, no new positions';detail=`Signals ambiguous. Hold existing spot. Do not open new perp positions. Wait for composite to move clearly above +15 or below -15 before acting.`;alloc='Maintain';allocSub='Current positions';conf=2;}
+  else if(comp>=-40) {sig='WEAK SELL';tagCls='t-weak-sell';panCls='p-weak-sell';title='Signals weakening — begin reducing exposure';detail=`<strong>Spot:</strong> Trim 20–30% of profitable positions. Move to stablecoins. <strong>Perps:</strong> Close longs. No new longs. Small 2x short with tight stop is an option to hedge.`;alloc='50–75%';allocSub='Reduce to this level';conf=3;}
+  else if(comp>=-75) {sig='SELL';tagCls='t-sell';panCls='p-sell';title='Bearish signals — significant reduction';detail=`Multiple signals pointing down. <strong>Spot:</strong> Reduce to 20–50%. Move to stablecoins. <strong>Perps:</strong> Close all longs immediately. No new positions.`;alloc='20–50%';allocSub='Reduce to this level';conf=4;}
+  else               {sig='STRONG SELL';tagCls='t-strong-sell';panCls='p-strong-sell';title='Strong bearish — exit / heavy hedge';detail=`Signals strongly negative. <strong>Spot:</strong> Reduce to 0–20%, move to stablecoins. <strong>Perps:</strong> Close all longs. Capital preservation is the priority.`;alloc='0–20%';allocSub='Exit/hedge urgently';conf=active.length>=4?5:4;}
+
+  // Variance → confidence modifier
+  const vals=active.map(([,v])=>v);
+  const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const sd=Math.sqrt(vals.reduce((a,v)=>a+(v-mean)**2,0)/vals.length);
+  if(sd>40){conf=Math.min(conf,2);detail+=` <strong>Note:</strong> High disagreement between categories — size smaller.`;}
+  else if(sd>25){conf=Math.min(conf,3);}
+  if(active.length<3) conf=Math.min(conf,2);
+
+  // Votes
+  const votes={buy:0,hold:0,sell:0};
+  for(const[,v] of active){if(v>15)votes.buy++;else if(v>=-15)votes.hold++;else votes.sell++;}
+
+  el('rec-score').textContent=(comp>0?'+':'')+comp;
+  el('rec-score').style.color=sColor(comp);
+  el('rec-tag').textContent=sig; el('rec-tag').className='rec-tag '+tagCls;
+  el('rec-panel').className='rec-panel '+panCls;
+  el('rec-title').textContent=title;
+  el('rec-detail').innerHTML=detail;
+  el('rec-alloc').textContent=alloc;
+  el('rec-alloc-sub').textContent=allocSub;
+  el('v-buy').textContent=votes.buy+'/';
+  el('v-hold').textContent=votes.hold+'/';
+  el('v-sell').textContent=votes.sell+'/';
+
+  const pc=comp>=15?'on-buy':comp>=-15?'on-hold':'on-sell';
+  document.querySelectorAll('#pips .pip').forEach((p,i)=>{p.className='pip'+(i<conf?' '+pc:'');});
+
+  // Chart
+  const today=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+  const last=cd.labels[cd.labels.length-1];
+  if(last!==today){cd.labels.push(today);cd.composite.push(comp);}
+  else cd.composite[cd.composite.length-1]=comp;
+  updChart();
+}
+
+// ════════════════════════════════════════════════════
+// FETCHERS
+// ════════════════════════════════════════════════════
+async function fetchFG() {
+  try {
+    const r=await fetch('https://api.alternative.me/fng/?limit=30');
+    const d=await r.json();
+    const entries=d.data.reverse();
+    cd.labels=entries.map(e=>new Date(e.timestamp*1000).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));
+    cd.fg=entries.map(e=>normFG(parseInt(e.value)));
+    cd.composite=[...cd.fg];
+    cd.rsi=new Array(entries.length).fill(null);
+
+    const lat=entries[entries.length-1];
+    const fg=parseInt(lat.value), label=lat.value_classification;
+    const score=normFG(fg);
+    let sig,interp;
+    if(fg<=20){sig='bullish';interp=`<strong>Extreme Fear (${fg}):</strong> Historically great buy zones. Market overreacting to downside. Counter-trend opportunity. Crowd panic = your edge.`;}
+    else if(fg<=35){sig='bullish';interp=`<strong>Fear (${fg}):</strong> Negative sentiment, not extreme. Good for patient accumulation. Avoid over-leveraging.`;}
+    else if(fg<=55){sig='neutral';interp=`<strong>Neutral (${fg}):</strong> No strong crowd signal. Trade on technicals and on-chain. Funding rates become primary.`;}
+    else if(fg<=75){sig='neutral';interp=`<strong>Greed (${fg}):</strong> Elevated sentiment. Risk/reward worsening. Reduce new long exposure.`;}
+    else{sig='bearish';interp=`<strong>Extreme Greed (${fg}):</strong> Historically near tops. Take profits. Correction risk high.`;}
+
+    setCard('fg',{sig,val:fg.toString(),sub:label+' · Updated daily',interp,score});
+    cats.se=Math.round(score*0.6);
+    updComposite(); updChart();
+  } catch(e){setCard('fg',{sig:'neutral',val:'ERR',sub:'API unavailable',interp:'Check alternative.me manually.'});}
+}
+
+async function fetchPrices() {
+  try {
+    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true');
+    const d=await r.json();
+    const bp=d.bitcoin.usd,bc=d.bitcoin.usd_24h_change,bv=d.bitcoin.usd_24h_vol;
+    const ep=d.ethereum.usd,ec=d.ethereum.usd_24h_change,ev=d.ethereum.usd_24h_vol;
+
+    el('btc-price').textContent=fmtP(bp);
+    const bcel=el('btc-chg'); bcel.textContent=fmtPct(bc); bcel.className='p-chg '+(bc>=0?'pos':'neg');
+    el('btc-sub').textContent='24h vol: '+fmtVol(bv);
+
+    el('eth-price').textContent=fmtP(ep);
+    const ecel=el('eth-chg'); ecel.textContent=fmtPct(ec); ecel.className='p-chg '+(ec>=0?'pos':'neg');
+    el('eth-sub').textContent='24h vol: '+fmtVol(ev);
+
+    const ratio=ep/bp;
+    let rSig,rScore,rInterp;
+    if(ratio>0.065){rSig='bullish';rScore=70;rInterp='<strong>Risk-on:</strong> ETH outperforming BTC — broad crypto appetite high. Good backdrop for ETH perps.';}
+    else if(ratio>0.050){rSig='neutral';rScore=0;rInterp='<strong>Neutral:</strong> ETH/BTC mid-range. No directional signal from ratio alone.';}
+    else{rSig='bearish';rScore=-60;rInterp='<strong>Risk-off:</strong> BTC dominating. Stick to BTC only — avoid altcoin and ETH exposure.';}
+
+    setCard('ratio',{sig:rSig,val:ratio.toFixed(5),sub:'ETH/BTC live ratio',interp:rInterp,score:rScore});
+    cats.se=cats.se!==null?Math.round(cats.se+rScore*0.3):rScore;
+    updComposite();
+    return {bp,ep};
+  } catch(e){console.error('Prices',e);}
+}
+
+async function fetchGlobal() {
+  try {
+    const r=await fetch('https://api.coingecko.com/api/v3/global');
+    const d=r.ok?await r.json():null; if(!d) throw new Error();
+    const dom=d.data.market_cap_percentage.btc;
+    const mcc=d.data.market_cap_change_percentage_24h_usd;
+    const mc=d.data.total_market_cap.usd;
+    const mcs='$'+(mc/1e12).toFixed(2)+'T';
+
+    el('mc-val').textContent=mcs;
+    const mcEl=el('mc-chg'); mcEl.textContent=fmtPct(mcc); mcEl.className='p-chg '+(mcc>=0?'pos':'neg');
+
+    let dSig,dScore,dInterp;
+    if(dom>62){dSig='bearish';dScore=-60;dInterp='<strong>High dominance (&gt;62%):</strong> Full risk-off. Alts and ETH underperforming badly. BTC only.';}
+    else if(dom>56){dSig='bearish';dScore=-25;dInterp='<strong>Elevated dominance:</strong> BTC leading. ETH perps not recommended. Stick to BTC.';}
+    else if(dom>50){dSig='neutral';dScore=10;dInterp='<strong>Moderate dominance:</strong> Balanced market. ETH perps viable with tight risk.';}
+    else if(dom>44){dSig='bullish';dScore=50;dInterp='<strong>Falling dominance:</strong> Risk appetite growing. ETH and majors outperforming. Altseason developing.';}
+    else{dSig='bullish';dScore=80;dInterp='<strong>Low dominance (&lt;44%):</strong> Altseason likely. Broad crypto gains. ETH perps highly viable.';}
+
+    setCard('dom',{sig:dSig,val:dom.toFixed(1)+'%',sub:'BTC share of total market',interp:dInterp,score:dScore});
+
+    let mSig,mScore,mInterp;
+    if(mcc>5){mSig='bullish';mScore=80;mInterp=`<strong>Strong inflows (+${mcc.toFixed(1)}%):</strong> Market expanding rapidly. Risk-on backdrop supports longs.`;}
+    else if(mcc>2){mSig='bullish';mScore=50;mInterp=`<strong>Positive momentum (+${mcc.toFixed(1)}%):</strong> Steady capital inflow. Good backdrop for accumulation on dips.`;}
+    else if(mcc>-2){mSig='neutral';mScore=0;mInterp=`<strong>Flat market (${fmtPct(mcc)}):</strong> Sideways total market cap. Range-trading preferred. No directional edge.`;}
+    else if(mcc>-5){mSig='bearish';mScore=-50;mInterp=`<strong>Outflows (${fmtPct(mcc)}):</strong> Capital leaving crypto. Reduce exposure. Avoid new longs.`;}
+    else{mSig='bearish';mScore=-80;mInterp=`<strong>Strong outflows (${fmtPct(mcc)}):</strong> Market contracting sharply. Defensive positioning. Hedge or exit.`;}
+
+    setCard('mc',{sig:mSig,val:fmtPct(mcc),sub:'Total market: '+mcs+' · 24h',interp:mInterp,score:mScore});
+    cats.ms=Math.round(dScore*0.24);
+    cats.im=Math.round(mScore*0.33);
+    updComposite();
+  } catch(e){console.error('Global',e);}
+}
+
+async function fetchOHLC() {
+  try {
+    const r=await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200');
+    const rawData=await r.json(); const data=rawData;
+    const closes=data.map(d=>parseFloat(d[4])); const L=closes.length;
+
+    // RSI
+    const rv=rsi(closes,14);
+    const rn=rv?normRSI(rv):0;
+    const rv2=rv?Math.round(rv):null;
+    cd.rsi=cd.labels.map(()=>rn);
+
+    let rSig,rInterp;
+    if(rv<30){rSig='bullish';rInterp=`<strong>Oversold (&lt;30, currently ${rv2}):</strong> Strong mean-reversion setup. Best combined with rising volume and negative funding.`;}
+    else if(rv<42){rSig='bullish';rInterp=`<strong>Below midline (${rv2}):</strong> Momentum slightly negative but not extreme. Good for patient spot accumulation.`;}
+    else if(rv<58){rSig='neutral';rInterp=`<strong>Neutral range (${rv2}):</strong> No strong RSI signal. Look to EMA and MACD for direction.`;}
+    else if(rv<72){rSig='neutral';rInterp=`<strong>Elevated (${rv2}):</strong> Strong momentum but overbought risk rising. Tighten stops.`;}
+    else{rSig='bearish';rInterp=`<strong>Overbought (${rv2}):</strong> High risk for new longs. Wait for RSI to cool below 60.`;}
+
+    setCard('rsi',{sig:rSig,val:rv2?.toString()||'—',sub:'14-period daily RSI · live',interp:rInterp,score:rn});
+
+    // MACD
+    const macd=ema(closes.slice(-26),12)-ema(closes.slice(-26),26);
+    const pmacd=ema(closes.slice(-27,-1),12)-ema(closes.slice(-27,-1),26);
+    const cross=macd>0&&pmacd<=0?'bull_cross':macd<0&&pmacd>=0?'bear_cross':macd>0?'above':'below';
+    let mSig,mScore,mVal,mInterp;
+    if(cross==='bull_cross'){mSig='bullish';mScore=90;mVal='↑ CROSS';mInterp='<strong>Fresh bullish crossover:</strong> MACD just crossed above zero — strong momentum signal. High-conviction long context.';}
+    else if(cross==='above'){mSig='bullish';mScore=40;mVal='↑ BULL';mInterp=`<strong>MACD above zero (${macd.toFixed(0)}):</strong> Uptrend momentum ongoing. Trend is your friend.`;}
+    else if(cross==='bear_cross'){mSig='bearish';mScore=-90;mVal='↓ CROSS';mInterp='<strong>Fresh bearish crossover:</strong> MACD just crossed below zero — strong reversal. Avoid longs, reduce exposure.';}
+    else{mSig='bearish';mScore=-40;mVal='↓ BEAR';mInterp=`<strong>MACD below zero (${macd.toFixed(0)}):</strong> Downtrend ongoing. Wait for bullish crossover before any longs.`;}
+
+    setCard('macd',{sig:mSig,val:mVal,sub:`MACD: ${macd.toFixed(0)} · ${macd>0?'positive':'negative'} histogram`,interp:mInterp,score:mScore});
+
+    // MA 7/25/99
+    const ma7 =closes.slice(-42).reduce((a,b)=>a+b,0)/42;
+    const ma25=closes.slice(-150).reduce((a,b)=>a+b,0)/150;
+    const ma99=L>=594?closes.slice(-594).reduce((a,b)=>a+b,0)/594:closes.reduce((a,b)=>a+b,0)/L;
+    let eSig,eScore,eVal,eInterp;
+    if(ma7>ma25&&ma25>ma99){eSig='bullish';eScore=80;eVal='↑ BULL';eInterp=`<strong>Full bull alignment:</strong> 7d &gt; 25d &gt; 99d. All MAs stacked bullish. Buy dips to 7d MA.`;}
+    else if(ma7>ma25){eSig='bullish';eScore=40;eVal='↑ PARTIAL';eInterp=`<strong>Partial bull:</strong> 7d above 25d but 25d still below 99d. Uptrend developing, not fully confirmed yet.`;}
+    else if(ma7<ma25&&ma25<ma99){eSig='bearish';eScore=-80;eVal='↓ BEAR';eInterp=`<strong>Full bear alignment:</strong> 7d &lt; 25d &lt; 99d. All MAs stacked bearish. No long positions.`;}
+    else{eSig='neutral';eScore=-20;eVal='↔ MIX';eInterp=`<strong>Mixed alignment:</strong> MAs not in clear order. Choppy conditions — reduce size, wait for clarity.`;}
+    setCard('ema',{sig:eSig,val:eVal,sub:`7d $${Math.round(ma7).toLocaleString()} · 25d $${Math.round(ma25).toLocaleString()} · 99d $${Math.round(ma99).toLocaleString()}`,interp:eInterp,score:eScore});
+
+    // 200d MA
+    const ma200=L>=1200?closes.slice(-1200).reduce((a,b)=>a+b,0)/1200:closes.reduce((a,b)=>a+b,0)/L;
+    const curP=closes[L-1];
+    const pct200=((curP-ma200)/ma200)*100;
+    let m2Sig,m2Score,m2Interp;
+    if(curP>ma200*1.2){m2Sig='bullish';m2Score=70;m2Interp=`<strong>Well above 200d (+${pct200.toFixed(1)}%):</strong> Bull market confirmed. Extended — good context but watch for reversion. 200d: $${Math.round(ma200).toLocaleString()}.`;}
+    else if(curP>ma200){m2Sig='bullish';m2Score=90;m2Interp=`<strong>Above 200d (+${pct200.toFixed(1)}%):</strong> Bull market. Near 200d = ideal long-term buy zone. 200d: $${Math.round(ma200).toLocaleString()}.`;}
+    else if(curP>ma200*.85){m2Sig='bearish';m2Score=-50;m2Interp=`<strong>Below 200d (${pct200.toFixed(1)}%):</strong> Bear market context. Wait for reclaim before longs. 200d: $${Math.round(ma200).toLocaleString()}.`;}
+    else{m2Sig='bearish';m2Score=-90;m2Interp=`<strong>Far below 200d (${pct200.toFixed(1)}%):</strong> Deep bear market. Capital preservation only. 200d: $${Math.round(ma200).toLocaleString()}.`;}
+    setCard('ma200',{sig:m2Sig,val:'$'+Math.round(ma200).toLocaleString(),sub:`Current $${Math.round(curP).toLocaleString()} · ${pct200>=0?'+':''}${pct200.toFixed(1)}% vs 200d`,interp:m2Interp,score:m2Score});
+
+    // 7d trend + EMA sub
+    const p7d=closes[L-42];
+    const t7d=((curP-p7d)/p7d)*100;
+    el('btc-7d').textContent=(t7d>=0?'+':'')+t7d.toFixed(1)+'%';
+    el('btc-7d').style.color=t7d>=0?'var(--accent)':'var(--danger)';
+    el('btc-ema-sub').textContent=`7d MA ${ma7>ma25?'›':'‹'} 25d · ${ma7>ma25?'uptrend':'downtrend'}`;
+
+    // PM category score (weighted blend of 4 signals)
+    cats.pm=Math.round(rn*.32+mScore*.28+eScore*.20+m2Score*.20);
+    updComposite();
+  } catch(e){
+    console.error('OHLC',e);
+    ['rsi','macd','ema','ma200'].forEach(id=>setCard(id,{sig:'neutral',val:'—',sub:'API unavailable',interp:'Check TradingView manually.'}));
+  }
+}
+
+async function fetchStable() {
+  try {
+    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether,usd-coin&vs_currencies=usd&include_market_cap=true&include_24hr_change=true');
+    const d=await r.json();
+    const usdtMc=d['tether']?.usd_market_cap||0, usdcMc=d['usd-coin']?.usd_market_cap||0;
+    const tot=usdtMc+usdcMc;
+    const avgChg=((d['tether']?.usd_24h_change||0)+(d['usd-coin']?.usd_24h_change||0))/2;
+    let sig,score,interp;
+    if(avgChg>0.5){sig='bullish';score=70;interp=`<strong>Supply growing (+${avgChg.toFixed(2)}%):</strong> Net minting — fresh capital entering ecosystem. Dry powder increasing.`;}
+    else if(avgChg>0){sig='bullish';score=30;interp=`<strong>Mild growth (+${avgChg.toFixed(2)}%):</strong> Slight capital inflow signal. Supportive but not decisive.`;}
+    else if(avgChg>-0.5){sig='neutral';score=0;interp=`<strong>Flat supply:</strong> No strong signal from stablecoin issuance. Market in balance.`;}
+    else{sig='bearish';score=-50;interp=`<strong>Supply shrinking (${avgChg.toFixed(2)}%):</strong> Net burning — capital exiting the ecosystem. Reduces available buying power.`;}
+
+    const tots='$'+(tot/1e9).toFixed(0)+'B';
+    setCard('stable',{sig,val:tots,sub:`USDT+USDC combined · 24h: ${fmtPct(avgChg)}`,interp,score});
+    cats.im=cats.im!==null?Math.round(cats.im+score*.33):score;
+    updComposite();
+  } catch(e){setCard('stable',{sig:'neutral',val:'—',sub:'API unavailable',interp:'Could not load stablecoin data.'});}
+}
+
+// ════════════════════════════════════════════════════
+// MAIN
+// ════════════════════════════════════════════════════
+async function fetchFunding() {
+  try {
+    // Binance Futures public API — no auth needed
+    const r=await fetch("https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1");
+    const d=await r.json();
+    const rate=parseFloat(d[0].fundingRate)*100;
+    const card=document.getElementById("card-fund");
+    const badge=document.getElementById("badge-fund") || null;
+    // Update funding card live
+    const valEl=card?.querySelector(".card-val");
+    const subEl=card?.querySelector(".card-sub");
+    const intEl=card?.querySelector(".card-int");
+    if(valEl) { valEl.textContent=(rate>=0?"+"":"")+rate.toFixed(4)+"%"; }
+    if(subEl) subEl.textContent="BTC perp funding · updates every 8h";
+    let fundScore,fundSig;
+    if(rate<-0.01){fundSig="bullish";fundScore=80;if(intEl)intEl.innerHTML="<strong>Negative funding ("+rate.toFixed(4)+"%):</strong> Shorts paying longs — strong bullish bias. Excellent long entry context.";}
+    else if(rate<0.01){fundSig="bullish";fundScore=50;if(intEl)intEl.innerHTML="<strong>Neutral funding ("+rate.toFixed(4)+"%):</strong> No crowding in either direction. Safe to open longs with other signals confirming.";}
+    else if(rate<0.05){fundSig="neutral";fundScore=0;if(intEl)intEl.innerHTML="<strong>Mild positive ("+rate.toFixed(4)+"%):</strong> Slight long bias in market. Acceptable for short-term longs but watch for increase.";}
+    else if(rate<0.1){fundSig="neutral";fundScore=-40;if(intEl)intEl.innerHTML="<strong>Elevated funding ("+rate.toFixed(4)+"%):</strong> Longs crowded. Caution — avoid opening new longs. Consider reducing leverage.";}
+    else{fundSig="bearish";fundScore=-80;if(intEl)intEl.innerHTML="<strong>Very high funding ("+rate.toFixed(4)+"%):</strong> Extremely crowded longs. High squeeze risk. Do not open longs.";}
+    if(card){card.className="sig-card "+fundSig;}
+    if(badge){badge.className="cbadge cb-"+fundSig;badge.textContent="LIVE";}
+    if(valEl) valEl.className="card-val "+fundSig;
+    // Add to market structure score
+    cats.ms=cats.ms!==null?Math.round(cats.ms+fundScore*0.32):fundScore;
+    updComposite();
+  } catch(e){console.log("Funding API failed",e);}
+}
+
+async function loadAll() {
+  el('last-update').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  Object.keys(cats).forEach(k=>cats[k]=null);
+  await Promise.all([fetchFG(),fetchGlobal(),fetchPrices(),fetchStable(),fetchFunding()]);
+  await fetchOHLC();
+  updComposite();
+}
+
+initChart();
+loadAll();
+setInterval(loadAll,5*60*1000);
+</script>
+</body>
+</html>
