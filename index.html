@@ -114,7 +114,7 @@ main{max-width:1200px;margin:0 auto;padding:16px 28px;display:grid;gap:14px;anim
 .calc-warn{font-family:var(--mono);font-size:10px;color:var(--orange);margin-top:10px;padding:8px 12px;background:rgba(255,181,69,.07);border-radius:3px;}
 
 /* ── CATEGORY SCORES ── */
-.scores{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:18px 22px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+.scores{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:18px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
 .sc{padding:0 16px;border-right:1px solid var(--border);}
 .sc:first-child{padding-left:0;}
 .sc:last-child{border-right:none;padding-right:0;}
@@ -195,30 +195,6 @@ main{max-width:1200px;margin:0 auto;padding:16px 28px;display:grid;gap:14px;anim
 .lnk:hover{color:var(--green);border-color:var(--green);}
 .lnk::after{content:' ↗';font-size:9px;}
 
-/* ── WEIGHT EDITOR ── */
-.wt-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
-.wt-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:0;}
-.wt-title{font-size:14px;font-weight:600;}
-.wt-hdr-right{display:flex;align-items:center;gap:10px;}
-.wt-total{font-family:var(--mono);font-size:12px;padding:3px 10px;border-radius:3px;transition:all .2s;}
-.wt-total-ok{background:rgba(184,255,69,.12);color:var(--green);}
-.wt-total-err{background:rgba(255,85,85,.12);color:var(--red);}
-.wt-reset{font-family:var(--mono);font-size:10px;color:var(--muted);background:none;border:1px solid var(--border);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.06em;transition:all .15s;}
-.wt-reset:hover{color:var(--text2);border-color:rgba(255,255,255,.25);}
-.wt-toggle{font-family:var(--mono);font-size:10px;color:var(--muted);background:none;border:1px solid var(--border);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.06em;transition:all .15s;}
-.wt-toggle:hover{color:var(--text2);border-color:rgba(255,255,255,.25);}
-.wt-body{margin-top:18px;}
-.wt-section{margin-bottom:18px;}
-.wt-section-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
-.wt-row{display:grid;grid-template-columns:160px 1fr 48px;gap:12px;align-items:center;margin-bottom:8px;}
-.wt-lbl{font-size:12px;color:var(--text2);}
-.wt-slider{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;background:var(--dim);outline:none;cursor:pointer;}
-.wt-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;transition:transform .1s;}
-.wt-slider::-webkit-slider-thumb:hover{transform:scale(1.2);}
-.wt-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;border:none;}
-.wt-val{font-family:var(--mono);font-size:12px;font-weight:600;text-align:right;color:var(--text);}
-.wt-cat-divider{display:flex;align-items:center;gap:10px;margin:4px 0 12px;font-family:var(--mono);font-size:10px;color:var(--muted);}
-.wt-cat-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 @media(max-width:900px){
   .scores{grid-template-columns:repeat(2,1fr);}
   .prices{grid-template-columns:repeat(2,1fr);}
@@ -325,49 +301,12 @@ main{max-width:1200px;margin:0 auto;padding:16px 28px;display:grid;gap:14px;anim
   </div>
 </div>
 
-<!-- WEIGHT EDITOR -->
-<div class="wt-card">
-  <div class="wt-hdr">
-    <div class="wt-title">Signal Weights</div>
-    <div class="wt-hdr-right">
-      <span class="wt-total wt-total-ok" id="wt-total">100%</span>
-      <button class="wt-reset" onclick="resetWeights()">↺ RESET</button>
-      <button class="wt-toggle" onclick="toggleWeights()">▾ SHOW</button>
-    </div>
-  </div>
-  <div id="wt-body" style="display:none">
-    <div class="wt-body">
-      <!-- Price & Momentum -->
-      <div class="wt-section">
-        <div class="wt-section-lbl">Price &amp; Momentum</div>
-        <div class="wt-row"><span class="wt-lbl">RSI (14-day)</span><input class="wt-slider" type="range" id="w-rsi" min="0" max="30" step="1" value="9" oninput="onWeightChange()"><span class="wt-val" id="wv-rsi">9%</span></div>
-        <div class="wt-row"><span class="wt-lbl">MACD</span><input class="wt-slider" type="range" id="w-macd" min="0" max="30" step="1" value="8" oninput="onWeightChange()"><span class="wt-val" id="wv-macd">8%</span></div>
-        <div class="wt-row"><span class="wt-lbl">MA Crossover 7/25/99</span><input class="wt-slider" type="range" id="w-ma" min="0" max="30" step="1" value="8" oninput="onWeightChange()"><span class="wt-val" id="wv-ma">8%</span></div>
-        <div class="wt-row"><span class="wt-lbl">Price vs 200d MA</span><input class="wt-slider" type="range" id="w-200" min="0" max="30" step="1" value="7" oninput="onWeightChange()"><span class="wt-val" id="wv-200">7%</span></div>
-      </div>
-      <!-- Market Structure -->
-      <div class="wt-section">
-        <div class="wt-section-lbl">Market Structure</div>
-        <div class="wt-row"><span class="wt-lbl">Funding Rate</span><input class="wt-slider" type="range" id="w-fund" min="0" max="30" step="1" value="14" oninput="onWeightChange()"><span class="wt-val" id="wv-fund">14%</span></div>
-        <div class="wt-row"><span class="wt-lbl">Open Interest</span><input class="wt-slider" type="range" id="w-oi" min="0" max="30" step="1" value="12" oninput="onWeightChange()"><span class="wt-val" id="wv-oi">12%</span></div>
-        <div class="wt-row"><span class="wt-lbl">Volume Momentum</span><input class="wt-slider" type="range" id="w-vol" min="0" max="30" step="1" value="8" oninput="onWeightChange()"><span class="wt-val" id="wv-vol">8%</span></div>
-      </div>
-      <!-- Sentiment -->
-      <div class="wt-section" style="margin-bottom:0">
-        <div class="wt-section-lbl">Sentiment</div>
-        <div class="wt-row"><span class="wt-lbl">Fear &amp; Greed</span><input class="wt-slider" type="range" id="w-fg" min="0" max="30" step="1" value="18" oninput="onWeightChange()"><span class="wt-val" id="wv-fg">18%</span></div>
-        <div class="wt-row"><span class="wt-lbl">BTC Dominance</span><input class="wt-slider" type="range" id="w-dom" min="0" max="30" step="1" value="9" oninput="onWeightChange()"><span class="wt-val" id="wv-dom">9%</span></div>
-        <div class="wt-row"><span class="wt-lbl">ETH/BTC Ratio</span><input class="wt-slider" type="range" id="w-ratio" min="0" max="30" step="1" value="7" oninput="onWeightChange()"><span class="wt-val" id="wv-ratio">7%</span></div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- CATEGORY SCORES -->
 <div class="scores">
-  <div class="sc"><div class="sc-lbl">Price &amp; Momentum</div><div class="sc-num" id="c-pm">—</div><div class="sc-sub" id="lbl-pm">Weight 32%</div><div class="sc-bar"><div class="sc-fill" id="f-pm" style="width:0;background:var(--muted)"></div></div></div>
-  <div class="sc"><div class="sc-lbl">Market Structure</div><div class="sc-num" id="c-ms">—</div><div class="sc-sub" id="lbl-ms">Weight 34%</div><div class="sc-bar"><div class="sc-fill" id="f-ms" style="width:0;background:var(--muted)"></div></div></div>
-  <div class="sc"><div class="sc-lbl">Sentiment</div><div class="sc-num" id="c-se">—</div><div class="sc-sub" id="lbl-se">Weight 34%</div><div class="sc-bar"><div class="sc-fill" id="f-se" style="width:0;background:var(--muted)"></div></div></div>
+  <div class="sc"><div class="sc-lbl">Price &amp; Momentum</div><div class="sc-num" id="c-pm">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-pm" style="width:0;background:var(--muted)"></div></div></div>
+  <div class="sc"><div class="sc-lbl">Market Structure</div><div class="sc-num" id="c-ms">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-ms" style="width:0;background:var(--muted)"></div></div></div>
+  <div class="sc"><div class="sc-lbl">Sentiment</div><div class="sc-num" id="c-se">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-se" style="width:0;background:var(--muted)"></div></div></div>
+  <div class="sc"><div class="sc-lbl">Momentum / Trend</div><div class="sc-num" id="c-tr">—</div><div class="sc-sub">Weight 25%</div><div class="sc-bar"><div class="sc-fill" id="f-tr" style="width:0;background:var(--muted)"></div></div></div>
 </div>
 
 <!-- CHART -->
@@ -634,13 +573,6 @@ function calcConfidence(cats) {
   return { level:'LOW', label:'Low', mult:0.5, cls:'conf-low' };
 }
 
-// Map card IDs to sigScores keys
-const CARD_TO_SIG = {
-  rsi:'rsi', macd:'macd', ma:'ma', '200':'w200',
-  fund:'fund', oi:'oi', vol:'vol',
-  fg:'fg', dom:'dom', ratio:'ratio'
-};
-
 // ── Card helper ───────────────────────────────────
 function setCard(id, {sig,val,sub,interp,score}) {
   const card=el('card-'+id), badge=el('badge-'+id);
@@ -653,11 +585,6 @@ function setCard(id, {sig,val,sub,interp,score}) {
   if(sub&&subEl) subEl.textContent=sub;
   if(interp&&intEl) intEl.innerHTML=interp;
   if(score!==undefined&&scEl) scEl.textContent='Signal score: '+(score>0?'+':'')+score;
-  // Auto-save into sigScores and recompute composite
-  if(score!==undefined && CARD_TO_SIG[id]!==undefined) {
-    sigScores[CARD_TO_SIG[id]] = score;
-    updComposite();
-  }
 }
 
 // ── Chart ─────────────────────────────────────────
@@ -777,127 +704,24 @@ function calcPosition(){
   }
 }
 
-// ── Signal weights (individual, sum to 100) ────────
-// Each signal has its own weight; categories are derived automatically
-const DEFAULT_WEIGHTS = {
-  rsi:5, macd:8, ma:8, w200:7,       // Price & Momentum: 32
-  fund:14, oi:12, vol:8,              // Market Structure: 34
-  fg:18, dom:9, ratio:7               // Sentiment: 34 → total 100% (approx)
-};
+// ── Composite + recommendation ─────────────────────
+const cats={pm:null,ms:null,se:null,tr:null};
+const wts={pm:.25,ms:.25,se:.25,tr:.25};
 
-// Live signal scores — updated as each card loads
-const sigScores = {
-  rsi:null, macd:null, ma:null, w200:null,
-  fund:null, oi:null, vol:null,
-  fg:null, dom:null, ratio:null
-};
+function updComposite(){
+  const active=Object.entries(cats).filter(([,v])=>v!==null);
+  if(!active.length)return;
+  let wSum=0,wTot=0;
+  for(const[k,v]of active){wSum+=v*wts[k];wTot+=wts[k];}
+  const comp=Math.round(wSum/wTot);
+  const conf=calcConfidence(cats);
 
-// Category membership
-const CAT_PM  = ['rsi','macd','ma','w200'];
-const CAT_MS  = ['fund','oi','vol'];
-const CAT_SE  = ['fg','dom','ratio'];
-
-// cats still used for confidence calc (category-level averages)
-const cats = {pm:null, ms:null, se:null};
-
-function getWeights() {
-  const ids = Object.keys(DEFAULT_WEIGHTS);
-  const raw = {};
-  ids.forEach(id => {
-    const el = document.getElementById('w-'+id);
-    raw[id] = el ? parseInt(el.value) : DEFAULT_WEIGHTS[id];
-  });
-  return raw;
-}
-
-function weightTotal() {
-  const w = getWeights();
-  return Object.values(w).reduce((a,b)=>a+b, 0);
-}
-
-// Weight editor UI functions
-let weightsVisible = false;
-function toggleWeights() {
-  weightsVisible = !weightsVisible;
-  el('wt-body').style.display = weightsVisible ? 'block' : 'none';
-  document.querySelector('.wt-toggle').textContent = weightsVisible ? '▴ HIDE' : '▾ SHOW';
-}
-
-function onWeightChange() {
-  const ids = Object.keys(DEFAULT_WEIGHTS);
-  ids.forEach(id => {
-    const slider = document.getElementById('w-'+id);
-    const valEl = document.getElementById('wv-'+id);
-    if(slider && valEl) valEl.textContent = slider.value + '%';
-  });
-  const total = weightTotal();
-  const totalEl = el('wt-total');
-  totalEl.textContent = total + '%';
-  totalEl.className = 'wt-total ' + (total === 100 ? 'wt-total-ok' : 'wt-total-err');
-  // Recompute composite with new weights immediately
-  updComposite();
-}
-
-function resetWeights() {
-  Object.entries(DEFAULT_WEIGHTS).forEach(([id, val]) => {
-    const slider = document.getElementById('w-'+id);
-    const valEl = document.getElementById('wv-'+id);
-    if(slider) slider.value = val;
-    if(valEl) valEl.textContent = val + '%';
-  });
-  const totalEl = el('wt-total');
-  totalEl.textContent = '100%';
-  totalEl.className = 'wt-total wt-total-ok';
-  updComposite();
-}
-
-function updComposite() {
-  const w = getWeights();
-  const total = Object.values(w).reduce((a,b)=>a+b, 0);
-  if(total === 0) return;
-
-  // Compute weighted composite from individual signals
-  let wSum = 0, wUsed = 0;
-  Object.entries(sigScores).forEach(([id, score]) => {
-    if(score === null) return;
-    const key = id === 'w200' ? 'w200' : id;
-    const weight = w[key] || 0;
-    wSum += score * weight;
-    wUsed += weight;
-  });
-  if(wUsed === 0) return;
-
-  // Normalise — if weights don't sum to 100, scale proportionally
-  const comp = Math.round(wSum / wUsed);
-
-  // Derive category scores (simple weighted average per category)
-  function catScore(keys) {
-    let s=0, wt=0;
-    keys.forEach(k => { if(sigScores[k]!==null){s+=sigScores[k]*(w[k]||0);wt+=(w[k]||0);} });
-    return wt>0 ? Math.round(s/wt) : null;
-  }
-  cats.pm = catScore(CAT_PM);
-  cats.ms = catScore(CAT_MS);
-  cats.se = catScore(CAT_SE);
-
-  // Compute category weight totals for display
-  const wPM = CAT_PM.reduce((a,k)=>a+(w[k]||0),0);
-  const wMS = CAT_MS.reduce((a,k)=>a+(w[k]||0),0);
-  const wSE = CAT_SE.reduce((a,k)=>a+(w[k]||0),0);
-  const elLblPm=el('lbl-pm'),elLblMs=el('lbl-ms'),elLblSe=el('lbl-se');
-  if(elLblPm) elLblPm.textContent=`Weight ${wPM}%`;
-  if(elLblMs) elLblMs.textContent=`Weight ${wMS}%`;
-  if(elLblSe) elLblSe.textContent=`Weight ${wSE}%`;
-
-  // Update category bars
-  [['pm','c-pm','f-pm'],['ms','c-ms','f-ms'],['se','c-se','f-se']].forEach(([k,nId,fId])=>{
+  [['pm','c-pm','f-pm'],['ms','c-ms','f-ms'],['se','c-se','f-se'],['tr','c-tr','f-tr']].forEach(([k,nId,fId])=>{
     if(cats[k]!==null){
-      el(nId).textContent=cats[k]; el(nId).style.color=sCol(cats[k]);
-      el(fId).style.width=cats[k]+'%'; el(fId).style.background=sCol(cats[k]);
+      el(nId).textContent=cats[k];el(nId).style.color=sCol(cats[k]);
+      el(fId).style.width=cats[k]+'%';el(fId).style.background=sCol(cats[k]);
     }
   });
-
-  const conf = calcConfidence(cats);
 
   el('score-num').textContent=comp;
   el('score-num').style.color=sCol(comp);
@@ -914,34 +738,30 @@ function updComposite() {
 
   if(conf.level==='LOW'){detail+=' <strong style="color:var(--orange)">⚠ Low confidence — signals disagree. Half-size only.</strong>';}
   if(conf.level==='MED'){detail+=' <em style="color:var(--muted)">Medium confidence — reduce position size.</em>';}
-  if(total!==100){detail+=` <em style="color:var(--orange)"> ⚠ Weights sum to ${total}% — normalised proportionally.</em>`;}
 
-  el('rec-tag').textContent=sig; el('rec-tag').className='rec-tag '+tagCls;
+  el('rec-tag').textContent=sig;el('rec-tag').className='rec-tag '+tagCls;
   el('rec').className='rec '+recCls;
   el('rec-title').textContent=title;
   el('rec-detail').innerHTML=detail;
   el('alloc').textContent=alloc;
   el('alloc-sub').textContent=allocSub;
 
-  const active = Object.values(cats).filter(v=>v!==null);
   const votes={buy:0,hold:0,sell:0};
-  active.forEach(v=>{if(v>=60)votes.buy++;else if(v>=40)votes.hold++;else votes.sell++;});
-  el('v-buy').textContent=votes.buy; el('v-hold').textContent=votes.hold; el('v-sell').textContent=votes.sell;
+  for(const[,v]of active){if(v>=60)votes.buy++;else if(v>=40)votes.hold++;else votes.sell++;}
+  el('v-buy').textContent=votes.buy;el('v-hold').textContent=votes.hold;el('v-sell').textContent=votes.sell;
 
   const pc=comp>=60?'g':comp>=40?'o':'r';
   el('pips').querySelectorAll('.pip').forEach((p,i)=>p.className='pip'+(i<strength?' '+pc:''));
 
   const cached=assetCache[currentAsset]||{};
-  assetCache[currentAsset]={...cached,score:comp,confidence:conf,sig:recCls,label:sig,lastFetch:Date.now()};
-  updPill(currentAsset,comp,recCls);
+  assetCache[currentAsset]={...cached, score:comp, confidence:conf, sig:recCls, label:sig, lastFetch:Date.now()};
+  updPill(currentAsset, comp, recCls);
   if(calcVisible) calcPosition();
 
   const today=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
   const last=cd.labels[cd.labels.length-1];
   if(last!==today){cd.labels.push(today);cd.composite.push(comp);}
   else cd.composite[cd.composite.length-1]=comp;
-  updChart();
-}
   updChart();
 }
 
@@ -962,7 +782,6 @@ function switchAsset(sym, btn){
     document.querySelectorAll('.asset-tab').forEach(t=>t.classList.remove('active'));
     btn.classList.add('active');
     Object.keys(cats).forEach(k=>cats[k]=null);
-    Object.keys(sigScores).forEach(k=>sigScores[k]=null);
     cd={labels:[],composite:[],fg:[],rsi:[]};
     resetCards();
     
@@ -1055,7 +874,7 @@ async function loadAssetBackground(sym){
     const vScore=vol7/vol30>1.1?60:vol7/vol30>0.8?50:30;
     const pm=Math.round(rn*.32+mScore*.28+eScore*.20+eScore*.20);
     const ms=Math.round(vScore);
-    const tmpCats={pm,ms,se:50};
+    const tmpCats={pm,ms,se:50,tr:Math.round(eScore*.4+mScore*.35+rn*.25)};
     const vals=Object.values(tmpCats);
     const comp=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
     const conf=calcConfidence(tmpCats);
@@ -1097,14 +916,16 @@ async function fetchFG(){
       else if(dom>50){dSig='neutral';dScore=55;dInterp=`<strong>Mid dominance (${dom.toFixed(1)}%):</strong> Balanced. Both BTC and alts can move.`;}
       else{dSig='neutral';dScore=45;dInterp=`<strong>Low dominance (${dom.toFixed(1)}%):</strong> Alt season territory. ETH/SOL setups favoured.`;}
       setCard('dom',{sig:dSig,val:dom.toFixed(1)+'%',sub:'BTC market dominance',interp:dInterp,score:dScore});
+      cats.se=Math.round(score*0.65+dScore*0.35);
     } catch(e2){
       setCard('dom',{sig:'neutral',val:'—',sub:'API unavailable',interp:'Check CoinGecko manually.',score:50});
+      cats.se=Math.round(score*0.7);
     }
-    updChart();
+    updComposite();updChart();
   }catch(e){
     console.error('F&G fetch failed:',e);
     setCard('fg',{sig:'neutral',val:'ERR',sub:'API error',interp:'Check alternative.me manually.'});
-    updComposite();
+    cats.se=50;updComposite();
   }
 }
 
@@ -1184,26 +1005,9 @@ async function fetchMainData(){
 
     const btcPrice=sym==='BTCUSDT'?ap:parseFloat(btcTicker.lastPrice);
     const btcChg=sym==='BTCUSDT'?ac:parseFloat(btcTicker.priceChangePercent);
-    // Reference price tile — show ETH when viewing BTC, show BTC when viewing anything else
-    if(sym==='BTCUSDT'){
-      // Fetch ETH as a market context reference
-      try{
-        const ethTicker=await fetchSpot('/ticker/24hr?symbol=ETHUSDT');
-        const ep=parseFloat(ethTicker.lastPrice),ec=parseFloat(ethTicker.priceChangePercent);
-        el('lbl-ref-p').textContent='ETH / USDT';
-        el('btc-p').textContent=fmtP(ep);
-        const bcel=el('btc-c');bcel.textContent=fmtPct(ec);bcel.className='pch '+(ec>=0?'up':'dn');
-        el('btc-s').textContent='market reference';
-      }catch(e){
-        el('lbl-ref-p').textContent='ETH / USDT';
-        el('btc-p').textContent='—';el('btc-s').textContent='unavailable';
-      }
-    } else {
-      el('lbl-ref-p').textContent='BTC / USDT';
-      el('btc-p').textContent=fmtP(btcPrice);
-      const bcel=el('btc-c');bcel.textContent=fmtPct(btcChg);bcel.className='pch '+(btcChg>=0?'up':'dn');
-      el('btc-s').textContent='market reference';
-    }
+    el('btc-p').textContent=fmtP(btcPrice);
+    const bcel=el('btc-c');bcel.textContent=fmtPct(btcChg);bcel.className='pch '+(btcChg>=0?'up':'dn');
+    el('btc-s').textContent='24h change';
 
     const cached=assetCache[sym]||{};
     assetCache[sym]={...cached,price:ap};
@@ -1286,7 +1090,12 @@ async function fetchMainData(){
     else{vSig='bearish';vScore=30;vInterp=`<strong>Low (${volRatio.toFixed(2)}x):</strong> Weak participation. Breakouts less reliable.`;}
     setCard('vol',{sig:vSig,val:volRatio.toFixed(2)+'x',sub:'7d vs 30d avg volume',interp:vInterp,score:vScore});
 
+    cats.pm=Math.round(rn*.32+mScore*.28+eScore*.20+m2Score*.20);
+    cats.tr=Math.round(eScore*.4+mScore*.35+rn*.25);
+
     const [fScore,oiScore]=await Promise.all([fetchFundingAndOI(),fetchOI()]);
+    cats.ms=Math.round(fScore*.45+oiScore*.35+vScore*.20);
+
     updComposite();
 
   }catch(e){
