@@ -729,59 +729,56 @@ async function fetchPrices() {
 
 async function fetchGlobal() {
   try {
-    // Use CoinGecko for dominance with a short timeout, fall back gracefully
-    const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 5000);
-    const r=await fetch('https://api.coingecko.com/api/v3/global',{signal:controller.signal});
-    clearTimeout(timeout);
-    const d=r.ok?await r.json():null; if(!d) throw new Error();
-    const dom=d.data.market_cap_percentage.btc;
-    const mcc=d.data.market_cap_change_percentage_24h_usd;
-    const mc=d.data.total_market_cap.usd;
-    const mcs='$'+(mc/1e12).toFixed(2)+'T';
+    // Pure Binance — estimate dominance from market caps using circulating supply approximations
+    const [btcT,ethT,bnbT,solT,xrpT]=await Promise.all([
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT').then(r=>r.json()),
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT').then(r=>r.json()),
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BNBUSDT').then(r=>r.json()),
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=SOLUSDT').then(r=>r.json()),
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=XRPUSDT').then(r=>r.json()),
+    ]);
+    // Approximate circulating supplies (updated periodically)
+    const btcP=parseFloat(btcT.lastPrice), btcC=parseFloat(btcT.priceChangePercent);
+    const ethP=parseFloat(ethT.lastPrice);
+    const bnbP=parseFloat(bnbT.lastPrice);
+    const solP=parseFloat(solT.lastPrice);
+    const xrpP=parseFloat(xrpT.lastPrice);
+
+    const btcMc=btcP*19700000;
+    const ethMc=ethP*120400000;
+    const bnbMc=bnbP*145887575;
+    const solMc=solP*463000000;
+    const xrpMc=xrpP*55000000000;
+    // Total estimate including ~40% for all other coins
+    const knownMc=btcMc+ethMc+bnbMc+solMc+xrpMc;
+    const totalMc=knownMc*1.6;
+    const dom=Math.round((btcMc/totalMc)*100*10)/10;
+    const mcs='$'+(totalMc/1e12).toFixed(2)+'T';
 
     el('mc-val').textContent=mcs;
-    const mcEl=el('mc-chg'); mcEl.textContent=fmtPct(mcc); mcEl.className='p-chg '+(mcc>=0?'pos':'neg');
+    const mcEl=el('mc-chg'); mcEl.textContent=fmtPct(btcC); mcEl.className='p-chg '+(btcC>=0?'pos':'neg');
 
     let dSig,dScore,dInterp;
     if(dom>62){dSig='bearish';dScore=-60;dInterp='<strong>High dominance (&gt;62%):</strong> Full risk-off. Alts and ETH underperforming badly. BTC only.';}
     else if(dom>56){dSig='bearish';dScore=-25;dInterp='<strong>Elevated dominance:</strong> BTC leading. ETH perps not recommended. Stick to BTC.';}
     else if(dom>50){dSig='neutral';dScore=10;dInterp='<strong>Moderate dominance:</strong> Balanced market. ETH perps viable with tight risk.';}
-    else if(dom>44){dSig='bullish';dScore=50;dInterp='<strong>Falling dominance:</strong> Risk appetite growing. ETH and majors outperforming. Altseason developing.';}
+    else if(dom>44){dSig='bullish';dScore=50;dInterp='<strong>Falling dominance:</strong> Risk appetite growing. ETH outperforming. Altseason developing.';}
     else{dSig='bullish';dScore=80;dInterp='<strong>Low dominance (&lt;44%):</strong> Altseason likely. Broad crypto gains. ETH perps highly viable.';}
 
-    setCard('dom',{sig:dSig,val:dom.toFixed(1)+'%',sub:'BTC share of total market',interp:dInterp,score:dScore});
+    setCard('dom',{sig:dSig,val:dom.toFixed(1)+'%',sub:'BTC dominance · Binance estimate',interp:dInterp,score:dScore});
 
     let mSig,mScore,mInterp;
-    if(mcc>5){mSig='bullish';mScore=80;mInterp=`<strong>Strong inflows (+${mcc.toFixed(1)}%):</strong> Market expanding rapidly. Risk-on backdrop supports longs.`;}
-    else if(mcc>2){mSig='bullish';mScore=50;mInterp=`<strong>Positive momentum (+${mcc.toFixed(1)}%):</strong> Steady capital inflow. Good backdrop for accumulation on dips.`;}
-    else if(mcc>-2){mSig='neutral';mScore=0;mInterp=`<strong>Flat market (${fmtPct(mcc)}):</strong> Sideways total market cap. Range-trading preferred. No directional edge.`;}
-    else if(mcc>-5){mSig='bearish';mScore=-50;mInterp=`<strong>Outflows (${fmtPct(mcc)}):</strong> Capital leaving crypto. Reduce exposure. Avoid new longs.`;}
-    else{mSig='bearish';mScore=-80;mInterp=`<strong>Strong outflows (${fmtPct(mcc)}):</strong> Market contracting sharply. Defensive positioning. Hedge or exit.`;}
+    if(btcC>5){mSig='bullish';mScore=80;mInterp=`<strong>BTC up +${btcC.toFixed(1)}% (24h):</strong> Strong market momentum. Risk-on backdrop.`;}
+    else if(btcC>2){mSig='bullish';mScore=50;mInterp=`<strong>BTC up +${btcC.toFixed(1)}% (24h):</strong> Positive momentum. Good backdrop for accumulation.`;}
+    else if(btcC>-2){mSig='neutral';mScore=0;mInterp=`<strong>BTC flat (${fmtPct(btcC)}, 24h):</strong> Sideways market. Range-trading preferred.`;}
+    else if(btcC>-5){mSig='bearish';mScore=-50;mInterp=`<strong>BTC down ${fmtPct(btcC)} (24h):</strong> Negative momentum. Reduce exposure.`;}
+    else{mSig='bearish';mScore=-80;mInterp=`<strong>BTC down ${fmtPct(btcC)} (24h):</strong> Strong sell-off. Capital preservation mode.`;}
 
-    setCard('mc',{sig:mSig,val:fmtPct(mcc),sub:'Total market: '+mcs+' · 24h',interp:mInterp,score:mScore});
+    setCard('mc',{sig:mSig,val:fmtPct(btcC),sub:'BTC 24h change · via Binance',interp:mInterp,score:mScore});
     cats.ms=Math.round(dScore*0.24);
     cats.im=Math.round(mScore*0.33);
     updComposite();
-  } catch(e){
-    console.error('Global',e);
-    // Fallback: estimate dominance from Binance market cap data
-    try {
-      const [btc,eth,bnb]=await Promise.all([
-        fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT').then(r=>r.json()),
-        fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT').then(r=>r.json()),
-        fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT').then(r=>r.json()),
-      ]);
-      // Use approximate circulating supplies for dominance estimate
-      const btcMc=parseFloat(btc.price)*19700000;
-      const ethMc=parseFloat(eth.price)*120000000;
-      const totalEst=btcMc+ethMc+btcMc*0.4; // rough estimate
-      const dom=Math.round((btcMc/totalEst)*100);
-      setCard('dom',{sig:'neutral',val:dom+'%~',sub:'BTC dominance estimate',interp:'<strong>Estimated dominance:</strong> CoinGecko unavailable. Using Binance price data estimate.'});
-      cats.ms=Math.round(10*0.24);
-      updComposite();
-    } catch(e2){console.error('Fallback global failed',e2);}
-  }
+  } catch(e){console.error('Global',e);}
 }
 
 async function fetchOHLC() {
@@ -857,30 +854,23 @@ async function fetchOHLC() {
 
 async function fetchStable() {
   try {
-    // Use Binance USDT/USDC market cap via CoinGecko with timeout
-    const controller = new AbortController();
-    setTimeout(()=>controller.abort(), 5000);
-    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether,usd-coin&vs_currencies=usd&include_market_cap=true&include_24hr_change=true',{signal:controller.signal});
-    const d=await r.json();
-    const usdtMc=d['tether']?.usd_market_cap||0, usdcMc=d['usd-coin']?.usd_market_cap||0;
-    const tot=usdtMc+usdcMc;
-    const avgChg=((d['tether']?.usd_24h_change||0)+(d['usd-coin']?.usd_24h_change||0))/2;
+    const [usdc,btc]=await Promise.all([
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=USDCUSDT').then(r=>r.json()),
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT').then(r=>r.json()),
+    ]);
+    const usdcVol=parseFloat(usdc.quoteVolume);
+    const btcVol=parseFloat(btc.quoteVolume);
+    const ratio=usdcVol/btcVol;
     let sig,score,interp;
-    if(avgChg>0.5){sig='bullish';score=70;interp=`<strong>Supply growing (+${avgChg.toFixed(2)}%):</strong> Net minting — fresh capital entering ecosystem. Dry powder increasing.`;}
-    else if(avgChg>0){sig='bullish';score=30;interp=`<strong>Mild growth (+${avgChg.toFixed(2)}%):</strong> Slight capital inflow signal. Supportive but not decisive.`;}
-    else if(avgChg>-0.5){sig='neutral';score=0;interp=`<strong>Flat supply:</strong> No strong signal from stablecoin issuance. Market in balance.`;}
-    else{sig='bearish';score=-50;interp=`<strong>Supply shrinking (${avgChg.toFixed(2)}%):</strong> Net burning — capital exiting the ecosystem. Reduces available buying power.`;}
-
-    const tots='$'+(tot/1e9).toFixed(0)+'B';
-    setCard('stable',{sig,val:tots,sub:`USDT+USDC combined · 24h: ${fmtPct(avgChg)}`,interp,score});
+    if(ratio>0.15){sig='bullish';score=70;interp='<strong>High stablecoin activity:</strong> Large USDC volume vs BTC. Significant dry powder on sidelines.';}
+    else if(ratio>0.08){sig='bullish';score=35;interp='<strong>Moderate stablecoin activity:</strong> Normal flows. Some dry powder available.';}
+    else if(ratio>0.04){sig='neutral';score=0;interp='<strong>Normal stablecoin flows:</strong> No strong signal from stablecoin activity.';}
+    else{sig='bearish';score=-40;interp='<strong>Low stablecoin activity:</strong> Capital already deployed. Less dry powder for buying.';}
+    setCard('stable',{sig,val:'Ratio: '+ratio.toFixed(3),sub:'USDC/BTC volume · Binance',interp,score});
     cats.im=cats.im!==null?Math.round(cats.im+score*.33):score;
     updComposite();
   } catch(e){setCard('stable',{sig:'neutral',val:'—',sub:'API unavailable',interp:'Could not load stablecoin data.'});}
 }
-
-// ════════════════════════════════════════════════════
-// MAIN
-// ════════════════════════════════════════════════════
 async function fetchFunding() {
   try {
     // Binance Futures public API — no auth needed
