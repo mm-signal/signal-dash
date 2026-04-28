@@ -140,7 +140,7 @@ main{max-width:1200px;margin:0 auto;padding:24px 28px;display:grid;gap:16px;}
 </head>
 <body>
 <header>
-<div class="logo">Signal/Dash <span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:8px">v3.2</span></div>
+<div class="logo">Signal/Dash <span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:8px">v3.3</span></div>
 <div class="hdr-right">
 <div class="live"><div class="dot"></div>LIVE</div>
 <div class="upd" id="upd">—</div>
@@ -316,139 +316,104 @@ main{max-width:1200px;margin:0 auto;padding:24px 28px;display:grid;gap:16px;}
 </div>
 </main>
 <script>
-// ── CORS Proxy Layer ───────────────────────────────
-// Each proxy has its own build+parse pair so response format differences
-// are handled correctly per-proxy (raw JSON vs wrapped JSON vs text).
+// ── v3.3 API Strategy ────────────────────────────────
 //
-// IMPORTANT: allorigins/get wraps large responses in { contents: "..." }
-// and may gzip them, so we text()-decode first then JSON.parse manually.
-// corsproxy.io and allorigins/raw return the body directly.
+// Binance.com blocks requests from browser/proxy IPs (451/403).
+// Solution: multi-source waterfall — each source tried in order.
+//
+// SPOT DATA waterfall:
+//   1. api.binance.us   — US-licensed Binance, allows browser requests
+//   2. api1.binance.com — alternate Binance cluster (sometimes works)
+//   3. data.binance.com — Binance CDN mirror with relaxed CORS
+//   4. corsproxy.io wrapping api.binance.us
+//
+// KLINES waterfall (same sources, different endpoint)
+//
+// FUNDING RATE waterfall:
+//   1. Bybit public API — proper CORS, no geo-block, same perp rate
+//   2. OKX public API  — alternative perp funding
+//   3. Binance fapi via proxy
 
-const PROXIES = [
-  // 1. corsproxy.io — reliable, raw response, no wrapper
-  {
-    name: 'corsproxy.io',
-    build: url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-    parse: async r => {
-      const text = await r.text();
-      return JSON.parse(text);
-    },
-  },
-  // 2. allorigins /raw — raw body, no JSON wrapper
-  {
-    name: 'allorigins/raw',
-    build: url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    parse: async r => {
-      const text = await r.text();
-      return JSON.parse(text);
-    },
-  },
-  // 3. allorigins /get — wraps body in { contents: "..." } string
-  // Must parse contents string separately; may be gzipped for large payloads.
-  {
-    name: 'allorigins/get',
-    build: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    parse: async r => {
-      const text = await r.text();
-      let wrapper;
-      try { wrapper = JSON.parse(text); } catch(e) { throw new Error('allorigins/get outer parse failed'); }
-      if (!wrapper || !wrapper.contents) throw new Error('allorigins/get: no contents field');
-      // contents is always a string — parse it as JSON
-      try { return JSON.parse(wrapper.contents); }
-      catch(e) { throw new Error('allorigins/get: contents not valid JSON (may be gzipped/HTML)'); }
-    },
-  },
-  // 4. thingproxy — simple prepend proxy, raw response
-  {
-    name: 'thingproxy',
-    build: url => `https://thingproxy.freeboard.io/fetch/${url}`,
-    parse: async r => {
-      const text = await r.text();
-      return JSON.parse(text);
-    },
-  },
-  // 5. cors.sh — last resort
-  {
-    name: 'cors.sh',
-    build: url => `https://proxy.cors.sh/${url}`,
-    parse: async r => {
-      const text = await r.text();
-      return JSON.parse(text);
-    },
-  },
-];
-
-// Track which proxy index is working (-1 = not yet determined)
-let activeProxyIdx = -1;
-
-function setProxyStatus(name, ok) {
+function setBadge(label, state) {
+  // state: 'ok' | 'warn' | 'err'
   const badge = document.getElementById('proxy-status');
   if (!badge) return;
-  badge.textContent = ok ? `PROXY: ${name}` : 'PROXY FAIL';
-  badge.className = 'proxy-badge ' + (ok ? 'proxy-ok' : 'proxy-err');
-  badge.title = ok ? `Using ${name} as CORS proxy` : 'All CORS proxies failed — check console';
+  badge.textContent = label;
+  badge.className = 'proxy-badge ' + (state==='ok'?'proxy-ok':state==='warn'?'proxy-warn':'proxy-err');
 }
 
-// Run one proxy against a test URL; throws on any failure
-async function tryProxy(idx, testUrl) {
-  const p = PROXIES[idx];
-  const r = await fetch(p.build(testUrl), { signal: AbortSignal.timeout(7000) });
+// Try a URL, return parsed JSON or throw
+async function tryFetch(url, timeoutMs=10000) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const data = await p.parse(r);
-  if (!data || typeof data !== 'object') throw new Error('unexpected response shape');
-  return data;
+  const text = await r.text();
+  if (!text || text[0]==='{' && text.includes('<!DOCTYPE')) throw new Error('got HTML not JSON');
+  return JSON.parse(text);
 }
 
-// Probe all proxies with a lightweight Binance call and lock in the winner
-async function detectWorkingProxy() {
-  // Use 24hr ticker — same endpoint shape as the real calls
-  const testUrl = 'https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT';
-  for (let i = 0; i < PROXIES.length; i++) {
+// Try a list of URL builders in order; return first success
+async function firstSuccess(builders, label) {
+  for (const build of builders) {
     try {
-      await tryProxy(i, testUrl);
-      activeProxyIdx = i;
-      setProxyStatus(PROXIES[i].name, true);
-      console.log(`[proxy] Selected: ${PROXIES[i].name}`);
-      return true;
-    } catch (e) {
-      console.warn(`[proxy] ${PROXIES[i].name} failed probe:`, e.message);
-    }
-  }
-  setProxyStatus(null, false);
-  return false;
-}
-
-// Fetch JSON through the active proxy; falls back through all proxies on failure
-async function proxiedFetch(url) {
-  // Fast path: use known-good proxy
-  if (activeProxyIdx >= 0) {
-    try {
-      const p = PROXIES[activeProxyIdx];
-      const r = await fetch(p.build(url), { signal: AbortSignal.timeout(12000) });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return await p.parse(r);
-    } catch (e) {
-      console.warn(`[proxy] Active proxy ${PROXIES[activeProxyIdx].name} failed for ${url}:`, e.message);
-      activeProxyIdx = -1; // fall through to full scan
-    }
-  }
-  // Slow path: scan all proxies
-  for (let i = 0; i < PROXIES.length; i++) {
-    try {
-      const p = PROXIES[i];
-      const r = await fetch(p.build(url), { signal: AbortSignal.timeout(12000) });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = await p.parse(r);
-      activeProxyIdx = i;
-      setProxyStatus(p.name, true);
+      const url = build();
+      const data = await tryFetch(url);
+      console.log(`[api] OK: ${url.slice(0,60)}`);
       return data;
-    } catch (e) {
-      console.warn(`[proxy] ${PROXIES[i].name} failed for ${url}:`, e.message);
+    } catch(e) {
+      console.warn(`[api] Failed: ${build().slice(0,60)} —`, e.message);
     }
   }
-  setProxyStatus(null, false);
-  throw new Error('All CORS proxies exhausted for: ' + url);
+  throw new Error(`All sources failed for: ${label}`);
 }
+
+// ── Source definitions ─────────────────────────────
+function spotSources(path) {
+  const enc = encodeURIComponent;
+  return [
+    () => `https://api.binance.us/api/v3${path}`,
+    () => `https://data.binance.com/api/v3${path}`,
+    () => `https://api1.binance.com/api/v3${path}`,
+    () => `https://corsproxy.io/?url=${enc('https://api.binance.us/api/v3'+path)}`,
+    () => `https://api.allorigins.win/raw?url=${enc('https://api.binance.us/api/v3'+path)}`,
+  ];
+}
+
+function futureSources(path) {
+  const enc = encodeURIComponent;
+  return [
+    () => `https://corsproxy.io/?url=${enc('https://fapi.binance.com'+path)}`,
+    () => `https://api.allorigins.win/raw?url=${enc('https://fapi.binance.com'+path)}`,
+  ];
+}
+
+async function fetchSpot(path) {
+  return firstSuccess(spotSources(path), path);
+}
+
+async function fetchFundingRate() {
+  // 1. Bybit — most reliable CORS, same perp concept
+  try {
+    const d = await tryFetch('https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1');
+    if (d?.result?.list?.[0]) return { rate: parseFloat(d.result.list[0].fundingRate), source: 'Bybit' };
+  } catch(e) { console.warn('[funding] Bybit:', e.message); }
+
+  // 2. OKX — another well-CORS'd exchange
+  try {
+    const d = await tryFetch('https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USD-SWAP');
+    if (d?.data?.[0]) return { rate: parseFloat(d.data[0].fundingRate), source: 'OKX' };
+  } catch(e) { console.warn('[funding] OKX:', e.message); }
+
+  // 3. Binance fapi via proxy
+  try {
+    const sources = futureSources('/fapi/v1/premiumIndex?symbol=BTCUSDT');
+    const d = await firstSuccess(sources, 'fapi fundingRate');
+    if (d?.lastFundingRate !== undefined) return { rate: parseFloat(d.lastFundingRate), source: 'Binance' };
+  } catch(e) { console.warn('[funding] Binance fapi:', e.message); }
+
+  return null; // soft fail — dashboard shows N/A
+}
+
+setBadge('CONNECTING', 'warn');
 
 // ── State ──────────────────────────────────────────
 const cats={pm:null,ms:null,se:null,tr:null};
@@ -648,13 +613,16 @@ async function fetchFG(){
 
 async function fetchBinance(){
   try{
-    // Fetch all Binance data using proxied requests
-    const [btc24,eth24,klines,funding]=await Promise.all([
-      proxiedFetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT'),
-      proxiedFetch('https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT'),
-      proxiedFetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200'),
-      proxiedFetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT'),
+    const [btc24, eth24, klines] = await Promise.all([
+      fetchSpot('/ticker/24hr?symbol=BTCUSDT'),
+      fetchSpot('/ticker/24hr?symbol=ETHUSDT'),
+      fetchSpot('/klines?symbol=BTCUSDT&interval=1d&limit=200'),
     ]);
+
+    let fundingData = null;
+    try { fundingData = await fetchFundingRate(); } catch(e) { console.warn('[funding]', e.message); }
+
+    setBadge('DIRECT', 'ok');
 
     // Prices
     const bp=parseFloat(btc24.lastPrice),bc=parseFloat(btc24.priceChangePercent),bv=parseFloat(btc24.quoteVolume);
@@ -678,18 +646,25 @@ async function fetchBinance(){
     cats.se=cats.se!==null?Math.round((cats.se+rScore)/2):rScore;
 
     // Funding rate
-    const fundRate=parseFloat(funding.lastFundingRate)*100;
-    el('fund-v').textContent=(fundRate>=0?'+':'')+fundRate.toFixed(4)+'%';
-    el('fund-v').style.color=fundRate<0?'var(--green)':fundRate<0.05?'var(--orange)':'var(--red)';
-    el('fund-s').textContent='BTC perp · 8h rate';
+    if (fundingData) {
+      const fundRate = fundingData.rate * 100;
+      el('fund-v').textContent=(fundRate>=0?'+':'')+fundRate.toFixed(4)+'%';
+      el('fund-v').style.color=fundRate<0?'var(--green)':fundRate<0.05?'var(--orange)':'var(--red)';
+      el('fund-s').textContent=`BTC perp · ${fundingData.source}`;
 
-    let fSig,fScore,fInterp;
-    if(fundRate<-0.01){fSig='bullish';fScore=85;fInterp=`<strong>Negative funding (${fundRate.toFixed(4)}%):</strong> Shorts paying longs. Strong bullish bias. Best long entry context.`;}
-    else if(fundRate<0.01){fSig='bullish';fScore=65;fInterp=`<strong>Neutral funding (${fundRate.toFixed(4)}%):</strong> No crowding. Safe to open longs with other signals confirming.`;}
-    else if(fundRate<0.05){fSig='neutral';fScore=45;fInterp=`<strong>Mild positive (${fundRate.toFixed(4)}%):</strong> Slight long bias. Acceptable but watch for increase.`;}
-    else if(fundRate<0.1){fSig='neutral';fScore=25;fInterp=`<strong>Elevated (${fundRate.toFixed(4)}%):</strong> Longs crowded. Avoid new longs. Reduce leverage.`;}
-    else{fSig='bearish';fScore=10;fInterp=`<strong>Very high (${fundRate.toFixed(4)}%):</strong> Extremely crowded. High squeeze risk. Do not open longs.`;}
-    setCard('fund',{sig:fSig,val:(fundRate>=0?'+':'')+fundRate.toFixed(4)+'%',sub:'BTC perp funding · Binance Futures',interp:fInterp,score:fScore});
+      let fSig,fScore,fInterp;
+      if(fundRate<-0.01){fSig='bullish';fScore=85;fInterp=`<strong>Negative funding (${fundRate.toFixed(4)}%):</strong> Shorts paying longs. Strong bullish bias. Best long entry context.`;}
+      else if(fundRate<0.01){fSig='bullish';fScore=65;fInterp=`<strong>Neutral funding (${fundRate.toFixed(4)}%):</strong> No crowding. Safe to open longs with other signals confirming.`;}
+      else if(fundRate<0.05){fSig='neutral';fScore=45;fInterp=`<strong>Mild positive (${fundRate.toFixed(4)}%):</strong> Slight long bias. Acceptable but watch for increase.`;}
+      else if(fundRate<0.1){fSig='neutral';fScore=25;fInterp=`<strong>Elevated (${fundRate.toFixed(4)}%):</strong> Longs crowded. Avoid new longs. Reduce leverage.`;}
+      else{fSig='bearish';fScore=10;fInterp=`<strong>Very high (${fundRate.toFixed(4)}%):</strong> Extremely crowded. High squeeze risk. Do not open longs.`;}
+      setCard('fund',{sig:fSig,val:(fundRate>=0?'+':'')+fundRate.toFixed(4)+'%',sub:`BTC perp funding · ${fundingData.source}`,interp:fInterp,score:fScore});
+      cats.ms = cats.ms !== null ? cats.ms : 0; // will be set later
+    } else {
+      el('fund-v').textContent='N/A';
+      el('fund-s').textContent='Funding rate unavailable';
+      setCard('fund',{sig:'neutral',val:'N/A',sub:'Funding API unavailable',interp:'Check <a href="https://www.coinglass.com/FundingRate" target="_blank">Coinglass ↗</a> manually.',score:50});
+    }
 
     // OHLC analysis
     const closes=klines.map(d=>parseFloat(d[4]));
@@ -765,7 +740,13 @@ async function fetchBinance(){
     else{vSig='bearish';vScore=30;vInterp=`<strong>Low volume (${volRatio.toFixed(2)}x avg):</strong> Weak participation. Breakouts less reliable.`;}
     setCard('vol',{sig:vSig,val:volRatio.toFixed(2)+'x',sub:'7d vs 30d average volume',interp:vInterp,score:vScore});
 
-    // Category scores
+    // Category scores — fScore may not exist if fundingData was null
+    const fScore = fundingData ? (
+      fundingData.rate*100 < -0.01 ? 85 :
+      fundingData.rate*100 < 0.01 ? 65 :
+      fundingData.rate*100 < 0.05 ? 45 :
+      fundingData.rate*100 < 0.1 ? 25 : 10
+    ) : 50;
     cats.pm=Math.round(rn*0.32+mScore*0.28+eScore*0.20+m2Score*0.20);
     cats.ms=Math.round(fScore*0.45+vScore*0.35+50*0.20);
     cats.tr=Math.round(eScore*0.4+mScore*0.35+rn*0.25);
@@ -773,8 +754,9 @@ async function fetchBinance(){
 
   }catch(e){
     console.error('Binance fetch failed:',e);
+    setBadge('API FAIL', 'err');
     ['rsi','macd','ma','200','fund','vol','ratio'].forEach(id=>{
-      setCard(id,{sig:'neutral',val:'ERR',sub:'All proxies failed — refresh to retry',interp:'Could not reach Binance via any CORS proxy. Try refreshing in 30s.'});
+      setCard(id,{sig:'neutral',val:'ERR',sub:'API error — refresh to retry',interp:`Could not fetch data: ${e.message}`});
     });
   }
 }
@@ -788,13 +770,7 @@ async function loadAll(){
 }
 
 initChart();
-
-// Detect proxy first, then load data
-detectWorkingProxy().then(ok => {
-  if (!ok) console.warn('[proxy] No working proxy found — Binance data will fail');
-  loadAll();
-});
-
+loadAll();
 setInterval(loadAll, 5*60*1000);
 </script>
 </body>
