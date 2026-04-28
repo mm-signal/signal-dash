@@ -455,7 +455,7 @@ main{max-width:1200px;margin:0 auto;padding:16px 28px;display:grid;gap:14px;anim
 
 <script>
 // ═══════════════════════════════════════════════════
-// v4.1 — Bug fixes + enhancements
+// v4.1r — API fix + enhancements
 // ═══════════════════════════════════════════════════
 
 // ── Asset config ──────────────────────────────────
@@ -497,13 +497,13 @@ async function firstSuccess(builders, label) {
 
 function spotSources(path) {
   const e = encodeURIComponent;
-  const base = 'https://api.binance.com/api/v3'; // FIX: Use .com instead of .us
   return [
-    () => `${base}${path}`,
-    () => `https://api1.binance.com/api/v3${path}`,
+    () => `https://api.binance.us/api/v3${path}`,
     () => `https://data.binance.com/api/v3${path}`,
-    () => `https://corsproxy.io/?url=${e(base+path)}`,
-    () => `https://api.allorigins.win/raw?url=${e(base+path)}`,
+    () => `https://api.binance.com/api/v3${path}`,
+    () => `https://api1.binance.com/api/v3${path}`,
+    () => `https://corsproxy.io/?url=${e('https://api.binance.us/api/v3'+path)}`,
+    () => `https://api.allorigins.win/raw?url=${e('https://api.binance.us/api/v3'+path)}`,
   ];
 }
 
