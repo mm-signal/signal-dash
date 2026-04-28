@@ -698,10 +698,13 @@ async function fetchFG() {
 
 async function fetchPrices() {
   try {
-    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true');
-    const d=await r.json();
-    const bp=d.bitcoin.usd,bc=d.bitcoin.usd_24h_change,bv=d.bitcoin.usd_24h_vol;
-    const ep=d.ethereum.usd,ec=d.ethereum.usd_24h_change,ev=d.ethereum.usd_24h_vol;
+    // Binance — no rate limits, instant
+    const [btcTicker,ethTicker] = await Promise.all([
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT').then(r=>r.json()),
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT').then(r=>r.json())
+    ]);
+    const bp=parseFloat(btcTicker.lastPrice),bc=parseFloat(btcTicker.priceChangePercent),bv=parseFloat(btcTicker.quoteVolume);
+    const ep=parseFloat(ethTicker.lastPrice),ec=parseFloat(ethTicker.priceChangePercent),ev=parseFloat(ethTicker.quoteVolume);
 
     el('btc-price').textContent=fmtP(bp);
     const bcel=el('btc-chg'); bcel.textContent=fmtPct(bc); bcel.className='p-chg '+(bc>=0?'pos':'neg');
@@ -726,7 +729,11 @@ async function fetchPrices() {
 
 async function fetchGlobal() {
   try {
-    const r=await fetch('https://api.coingecko.com/api/v3/global');
+    // Use CoinGecko for dominance with a short timeout, fall back gracefully
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 5000);
+    const r=await fetch('https://api.coingecko.com/api/v3/global',{signal:controller.signal});
+    clearTimeout(timeout);
     const d=r.ok?await r.json():null; if(!d) throw new Error();
     const dom=d.data.market_cap_percentage.btc;
     const mcc=d.data.market_cap_change_percentage_24h_usd;
@@ -756,7 +763,25 @@ async function fetchGlobal() {
     cats.ms=Math.round(dScore*0.24);
     cats.im=Math.round(mScore*0.33);
     updComposite();
-  } catch(e){console.error('Global',e);}
+  } catch(e){
+    console.error('Global',e);
+    // Fallback: estimate dominance from Binance market cap data
+    try {
+      const [btc,eth,bnb]=await Promise.all([
+        fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT').then(r=>r.json()),
+        fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT').then(r=>r.json()),
+        fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT').then(r=>r.json()),
+      ]);
+      // Use approximate circulating supplies for dominance estimate
+      const btcMc=parseFloat(btc.price)*19700000;
+      const ethMc=parseFloat(eth.price)*120000000;
+      const totalEst=btcMc+ethMc+btcMc*0.4; // rough estimate
+      const dom=Math.round((btcMc/totalEst)*100);
+      setCard('dom',{sig:'neutral',val:dom+'%~',sub:'BTC dominance estimate',interp:'<strong>Estimated dominance:</strong> CoinGecko unavailable. Using Binance price data estimate.'});
+      cats.ms=Math.round(10*0.24);
+      updComposite();
+    } catch(e2){console.error('Fallback global failed',e2);}
+  }
 }
 
 async function fetchOHLC() {
@@ -832,7 +857,10 @@ async function fetchOHLC() {
 
 async function fetchStable() {
   try {
-    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether,usd-coin&vs_currencies=usd&include_market_cap=true&include_24hr_change=true');
+    // Use Binance USDT/USDC market cap via CoinGecko with timeout
+    const controller = new AbortController();
+    setTimeout(()=>controller.abort(), 5000);
+    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether,usd-coin&vs_currencies=usd&include_market_cap=true&include_24hr_change=true',{signal:controller.signal});
     const d=await r.json();
     const usdtMc=d['tether']?.usd_market_cap||0, usdcMc=d['usd-coin']?.usd_market_cap||0;
     const tot=usdtMc+usdcMc;
