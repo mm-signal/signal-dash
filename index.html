@@ -522,10 +522,10 @@ async function fetchFG(){
 async function fetchBinance(){
   try{
     const [btc24,eth24,klines,funding]=await Promise.all([
-      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT').then(r=>r.json()),
-      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT').then(r=>r.json()),
-      fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200').then(r=>r.json()),
-      fetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT').then(r=>r.json()),
+      fetch('https://api.allorigins.win/raw?url=https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT').then(r=>r.json()),
+      fetch('https://api.allorigins.win/raw?url=https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT').then(r=>r.json()),
+      fetch('https://api.allorigins.win/raw?url=https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200').then(r=>r.json()),
+      fetch('https://api.allorigins.win/raw?url=https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT').then(r=>r.json()),
     ]);
 
     // Prices
